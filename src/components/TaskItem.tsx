@@ -15,7 +15,7 @@ interface TaskItemProps {
 export function TaskItem({ task }: TaskItemProps) {
   const toggle = useMutation(api.tasks.toggle);
   const remove = useMutation(api.tasks.remove);
-  const update = useMutation(api.tasks.update);
+  const updateTask = useMutation(api.tasks.update);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -34,7 +34,14 @@ export function TaskItem({ task }: TaskItemProps) {
   const handleUpdate = async () => {
     const trimmed = editedTitle.trim();
     if (trimmed && trimmed !== task.title) {
-      await update({ id: task._id, title: trimmed });
+      // Capitalize edit too
+      const capitalized = trimmed
+        .split(/\s+/)
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      
+      if (soundEngine) soundEngine.tick();
+      await updateTask({ id: task._id, title: capitalized });
     }
     setIsEditing(false);
   };
