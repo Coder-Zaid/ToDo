@@ -31,9 +31,14 @@ export function AddTask() {
     // Clear UI instantly for better feel
     setTitle("");
 
-    // Custom interception: map "before [Month]" to "1 [Month]" for chrono parsing
+    // Custom interception for "before" patterns
+    // 1. Handle "before [Day] [Month]" -> remove "before" so chrono sees "[Day] [Month]"
+    const beforeDayMonthRegex = /\bbefore\s+(\d+)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi;
+    let processingTitle = taskTitle.replace(beforeDayMonthRegex, "$1 $2");
+
+    // 2. Handle "before [Month]" (no day) -> "1 [Month]"
     const beforeMonthRegex = /\bbefore\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi;
-    const processingTitle = taskTitle.replace(beforeMonthRegex, "1 $1");
+    processingTitle = processingTitle.replace(beforeMonthRegex, "1 $1");
 
     // Parse natural language date
     const parsed = chrono.parse(processingTitle);
