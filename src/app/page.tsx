@@ -14,7 +14,7 @@ export default function Home() {
   const tasks = useQuery(api.tasks.list);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const remainingCount = tasks?.filter((t: any) => !t.completed).length ?? 0;
-  const today = format(new Date(), "MMM d");
+  const [today, setToday] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -27,6 +27,7 @@ export default function Home() {
   };
 
   useEffect(() => {
+    setToday(format(new Date(), "MMM d"));
     setIsLoaded(true);
     if (soundEngine) {
       soundEngine.enabled = soundEnabled;

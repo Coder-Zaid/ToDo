@@ -20,6 +20,8 @@ export function TaskItem({ task }: TaskItemProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.title);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSoon, setIsSoon] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,12 +31,23 @@ export function TaskItem({ task }: TaskItemProps) {
     }
   }, [isEditing]);
 
-  const isSoon = task.deadline && !task.completed && isBefore(task.deadline, addHours(new Date(), 1)) && isBefore(new Date(), task.deadline);
+  useEffect(() => {
+    // Calculate isSoon only on client to avoid hydration mismatch
+    const checkSoon = () => {
+      const soon = task.deadline && !task.completed && isBefore(task.deadline, addHours(new Date(), 1)) && isBefore(new Date(), task.deadline);
+      setIsSoon(!!soon);
+    };
+    checkSoon();
+    const interval = setInterval(checkSoon, 60000);
+    return () => clearInterval(interval);
+  }, [task.deadline, task.completed]);
 
   const handleUpdate = async () => {
+    if (isSaving) return;
     const trimmed = editedTitle.trim();
+    
     if (trimmed && trimmed !== task.title) {
-      // Capitalize edit too
+      setIsSaving(true);
       const capitalized = trimmed
         .split(/\s+/)
         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -44,6 +57,7 @@ export function TaskItem({ task }: TaskItemProps) {
       await updateTask({ id: task._id, title: capitalized });
     }
     setIsEditing(false);
+    setIsSaving(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
