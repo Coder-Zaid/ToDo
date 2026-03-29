@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #EAEAEA;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+}
+
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: #1a1a1a;
+  }
+}
+
+/* Scrollbar styling for inner list */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animations (Strict 80ms - 150ms) */
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes panel-appear {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes task-appear {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes task-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-4px); }
+}
+
+.animate-overlay-in {
+  animation: overlay-fade-in 120ms ease-out forwards;
+}
+
+.animate-overlay-out {
+  animation: overlay-fade-in 80ms ease-out reverse forwards;
+}
+
+.animate-panel-in {
+  animation: panel-appear 120ms ease-out forwards;
+}
+
+.animate-task-in {
+  animation: task-appear 100ms ease-out forwards;
+}
+
+.animate-task-out {
+  animation: task-exit 100ms ease-in forwards;
+}
