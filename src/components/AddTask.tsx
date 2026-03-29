@@ -46,7 +46,14 @@ export function AddTask() {
     let cleanTitle = taskTitle;
 
     if (parsed.length > 0) {
-      const date = parsed[0].start.date();
+      const result = parsed[0];
+      const date = result.start.date();
+      
+      // If the user didn't specify a time, default to end-of-day (23:59:59)
+      if (!result.start.isCertain("hour") && !result.start.isCertain("minute")) {
+        date.setHours(23, 59, 59, 999);
+      }
+      
       deadline = date.getTime();
       
       const matchedText = parsed[0].text;
