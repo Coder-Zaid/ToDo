@@ -17,9 +17,16 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  const handleClose = () => {
+    setIsLoaded(false);
+    if (soundEngine) soundEngine.click();
+    setTimeout(() => {
+      window.close();
+    }, 80);
+  };
+
   useEffect(() => {
     setIsLoaded(true);
-    // Play sound twice initially might be too much, but on mount is good.
     if (soundEngine) {
       soundEngine.enabled = soundEnabled;
       soundEngine.pop();
@@ -32,6 +39,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -39,14 +47,6 @@ export default function Home() {
       soundEngine.enabled = soundEnabled;
     }
   }, [soundEnabled]);
-
-  const handleClose = () => {
-    setIsLoaded(false);
-    if (soundEngine) soundEngine.click();
-    setTimeout(() => {
-      window.close();
-    }, 80);
-  };
 
   return (
     <main 
@@ -72,6 +72,7 @@ export default function Home() {
 
         {/* Task List (Small scrollable area if many tasks) */}
         <div className="flex flex-col max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {tasks?.map((task: any) => (
             <TaskItem key={task._id} task={task} />
           ))}
