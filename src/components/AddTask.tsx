@@ -49,11 +49,18 @@ export function AddTask() {
       const date = parsed[0].start.date();
       deadline = date.getTime();
       
-      const matchedText = parsed[0].text;
-      if (processingTitle.endsWith(matchedText)) {
-        cleanTitle = processingTitle.slice(0, -matchedText.length).trim();
+      const matchedText = (parsed[0] as any).text;
+      const index = (parsed[0] as any).index;
+      const prefix = processingTitle.substring(0, index);
+      const suffix = processingTitle.substring(index + matchedText.length);
+
+      // Remove "by" (case-insensitive) if it precedes the date/time
+      const byPattern = /\bby\s*$/i;
+      if (byPattern.test(prefix.trimEnd())) {
+        const cleanPrefix = prefix.trimEnd().replace(byPattern, "");
+        cleanTitle = (cleanPrefix + suffix).replace(/\s\s+/g, " ").trim();
       } else {
-        cleanTitle = processingTitle.replace(matchedText, "").replace(/\s\s+/g, ' ').trim();
+        cleanTitle = (prefix + suffix).replace(/\s\s+/g, " ").trim();
       }
     }
 
