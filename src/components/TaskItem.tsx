@@ -60,15 +60,17 @@ export function TaskItem({ task }: TaskItemProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-center gap-3 py-2 px-4 -mx-1 rounded-xl hover:bg-[#111111] transition-colors duration-200">
-        <button 
-          onClick={handleToggle}
+      <div 
+        onClick={handleToggle}
+        className="flex items-center gap-3 py-2 px-4 -mx-1 rounded-xl cursor-pointer hover:bg-[#111111] transition-colors duration-200"
+      >
+        <div 
           className={`w-5 h-5 flex items-center justify-center border rounded-sm transition-all duration-100 ${
             task.completed ? "bg-[#4A4A4A] border-[#4A4A4A]" : "border-[#1A1A1A] group-hover:border-[#7A7A7A]"
           }`}
         >
           {task.completed && <Check size={14} className="text-black" />}
-        </button>
+        </div>
         
         <div className="flex flex-col flex-1">
           <span className={`text-[#EAEAEA] transition-all duration-100 ${task.completed ? "text-[#4A4A4A] line-through decoration-[#4A4A4A]" : ""}`}>
@@ -84,8 +86,11 @@ export function TaskItem({ task }: TaskItemProps) {
 
         {isHovered && (
           <button 
-            onClick={handleDelete}
-            className="text-[#4A4A4A] hover:text-[#7A7A7A] transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete();
+            }}
+            className="p-1 text-[#4A4A4A] hover:text-[#7A7A7A] transition-colors"
           >
             <Trash2 size={16} />
           </button>
