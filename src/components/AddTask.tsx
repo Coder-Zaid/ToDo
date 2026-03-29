@@ -31,18 +31,24 @@ export function AddTask() {
     // Clear UI instantly for better feel
     setTitle("");
 
+    // Custom interception: map "before [Month]" to "1 [Month]" for chrono parsing
+    const beforeMonthRegex = /\bbefore\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi;
+    const processingTitle = taskTitle.replace(beforeMonthRegex, "1 $1");
+
     // Parse natural language date
-    const parsed = chrono.parse(taskTitle);
+    const parsed = chrono.parse(processingTitle);
     let deadline: number | null = null;
     let cleanTitle = taskTitle;
 
     if (parsed.length > 0) {
       const date = parsed[0].start.date();
       deadline = date.getTime();
-      if (taskTitle.endsWith(parsed[0].text)) {
-        cleanTitle = taskTitle.slice(0, -parsed[0].text.length).trim();
+      
+      const matchedText = parsed[0].text;
+      if (processingTitle.endsWith(matchedText)) {
+        cleanTitle = processingTitle.slice(0, -matchedText.length).trim();
       } else {
-        cleanTitle = taskTitle.replace(parsed[0].text, "").replace(/\s\s+/g, ' ').trim();
+        cleanTitle = processingTitle.replace(matchedText, "").replace(/\s\s+/g, ' ').trim();
       }
     }
 
