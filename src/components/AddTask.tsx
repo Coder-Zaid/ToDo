@@ -31,7 +31,7 @@ export function AddTask() {
     // Clear UI instantly for better feel
     setTitle("");
 
-    // Custom interception for "before" patterns
+    // Custom interception for date patterns
     // 1. Handle "before [Day] [Month]" -> remove "before" so chrono sees "[Day] [Month]"
     const beforeDayMonthRegex = /\bbefore\s+(\d+)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi;
     let processingTitle = taskTitle.replace(beforeDayMonthRegex, "$1 $2");
@@ -40,8 +40,13 @@ export function AddTask() {
     const beforeMonthRegex = /\bbefore\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi;
     processingTitle = processingTitle.replace(beforeMonthRegex, "1 $1");
 
-    // Parse natural language date
-    const parsed = chrono.parse(processingTitle);
+    // 3. Handle "under [X] days/weeks/months" -> "in [X] days/weeks/months"
+    const underRegex = /\bunder\s+(\d+)\s+(day|week|month)s?\b/gi;
+    processingTitle = processingTitle.replace(underRegex, "in $1 $2s");
+
+    // Parse natural language date using GB locale for DD/MM/YY support
+    // @ts-ignore - chrono-node types might not have en.GB explicitly but it exists in the runtime for v2
+    const parsed = (chrono as any).en.GB.parse(processingTitle, new Date(), { forwardDate: true });
     let deadline: number | null = null;
     let cleanTitle = taskTitle;
 
@@ -61,8 +66,8 @@ export function AddTask() {
       const prefix = processingTitle.substring(0, index);
       const suffix = processingTitle.substring(index + matchedText.length);
 
-      // Remove "by" or "before" (case-insensitive) if it precedes the date/time
-      const prepPattern = /\b(by|before)\s*$/i;
+      // Remove "by", "before" or "under" (case-insensitive) if it precedes the date/time
+      const prepPattern = /\b(by|before|under)\s*$/i;
       if (prepPattern.test(prefix.trimEnd())) {
         const cleanPrefix = prefix.trimEnd().replace(prepPattern, "");
         cleanTitle = (cleanPrefix + suffix).replace(/\s\s+/g, " ").trim();
