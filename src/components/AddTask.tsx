@@ -49,8 +49,8 @@ export function AddTask() {
       const date = parsed[0].start.date();
       deadline = date.getTime();
       
-      const matchedText = (parsed[0] as any).text;
-      const index = (parsed[0] as any).index;
+      const matchedText = parsed[0].text;
+      const index = parsed[0].index;
       const prefix = processingTitle.substring(0, index);
       const suffix = processingTitle.substring(index + matchedText.length);
 
@@ -64,7 +64,14 @@ export function AddTask() {
       }
     }
 
-    await add({ title: cleanTitle || taskTitle, deadline });
+    // Capitalize each word in the title
+    const finalTitle = (cleanTitle || taskTitle)
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+      .trim();
+
+    await add({ title: finalTitle, deadline });
     
     // Ensure input stays focused
     inputRef.current?.focus();
