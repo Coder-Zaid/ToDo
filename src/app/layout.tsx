@@ -6,7 +6,7 @@ import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ToDo",
+  title: "✓ ToDo",
   description: "A minimal, distraction-free command center.",
   manifest: "/manifest.json",
   icons: {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ToDo",
+    title: "✓ ToDo",
   },
 };
 

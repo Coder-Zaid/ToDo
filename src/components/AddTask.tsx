@@ -71,12 +71,17 @@ export function AddTask() {
       }
     }
 
-    // Capitalize each word in the title
-    const finalTitle = (cleanTitle || taskTitle)
-      .split(/\s+/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-      .trim();
+    // Always capitalize every word in the title
+    const rawTitle = (cleanTitle && cleanTitle.trim().length > 0) ? cleanTitle : taskTitle;
+    const finalTitle = rawTitle
+      .trim()
+      .replace(/\s\s+/g, " ")
+      .split(" ")
+      .map(word => {
+        if (!word) return "";
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(" ");
 
     await add({ title: finalTitle, deadline });
     
@@ -95,7 +100,10 @@ export function AddTask() {
           placeholder="Type task... (e.g. clean room tomorrow 5pm)"
           className="bg-transparent text-[#EAEAEA] placeholder-[#4A4A4A] py-1.5 w-full outline-none text-sm transition-all"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            if (soundEngine) soundEngine.type();
+          }}
         />
       </div>
     </form>

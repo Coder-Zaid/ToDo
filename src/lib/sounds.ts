@@ -57,6 +57,14 @@ class SoundEngine {
   click() {
     this.playTone(300, 'sine', 0.05, 0.04);
   }
+
+  // Soothing "type" for keypress
+  type() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    this.playTone(1800 + Math.random() * 200, 'sine', 0.02, 0.012);
+  }
 }
 
 export const soundEngine = typeof window !== 'undefined' ? new SoundEngine() : null;

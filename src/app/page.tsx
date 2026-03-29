@@ -8,7 +8,7 @@ import { TaskItem } from "@/components/TaskItem";
 import { AddTask } from "@/components/AddTask";
 import { useEffect, useState } from "react";
 import { soundEngine } from "@/lib/sounds";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Check } from "lucide-react";
 
 export default function Home() {
   const tasks = useQuery(api.tasks.list);
@@ -55,6 +55,17 @@ export default function Home() {
       suppressHydrationWarning
     >
       <div className={`w-full flex flex-col gap-6 transition-all duration-120 ${isLoaded ? 'animate-panel-in' : ''}`}>
+        {/* Logo/Branding */}
+        <div className="flex items-center gap-2 mb-1 animate-task-in">
+          <div className="w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+             <Check size={14} className="text-black stroke-[3px]" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[11px] font-bold tracking-[0.3em] uppercase text-[#EAEAEA]">ToDo</span>
+            <div className="h-[1px] w-full bg-gradient-to-r from-white/20 to-transparent" />
+          </div>
+        </div>
+
         {/* Header */}
         <header className="flex justify-between items-start">
           <div className="flex flex-col gap-0.5">
