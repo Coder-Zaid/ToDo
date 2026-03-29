@@ -54,10 +54,10 @@ export function AddTask() {
       const prefix = processingTitle.substring(0, index);
       const suffix = processingTitle.substring(index + matchedText.length);
 
-      // Remove "by" (case-insensitive) if it precedes the date/time
-      const byPattern = /\bby\s*$/i;
-      if (byPattern.test(prefix.trimEnd())) {
-        const cleanPrefix = prefix.trimEnd().replace(byPattern, "");
+      // Remove "by" or "before" (case-insensitive) if it precedes the date/time
+      const prepPattern = /\b(by|before)\s*$/i;
+      if (prepPattern.test(prefix.trimEnd())) {
+        const cleanPrefix = prefix.trimEnd().replace(prepPattern, "");
         cleanTitle = (cleanPrefix + suffix).replace(/\s\s+/g, " ").trim();
       } else {
         cleanTitle = (prefix + suffix).replace(/\s\s+/g, " ").trim();
