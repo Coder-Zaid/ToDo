@@ -3,8 +3,8 @@
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { format, isBefore, addHours, isToday, isTomorrow, formatDistanceToNowStrict } from "date-fns";
-import { Check, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Check, Trash2, Pencil } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { soundEngine } from "@/lib/sounds";
 
 interface TaskItemProps {
@@ -15,10 +15,37 @@ interface TaskItemProps {
 export function TaskItem({ task }: TaskItemProps) {
   const toggle = useMutation(api.tasks.toggle);
   const remove = useMutation(api.tasks.remove);
+  const update = useMutation(api.tasks.update);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(task.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
 
   const isSoon = task.deadline && !task.completed && isBefore(task.deadline, addHours(new Date(), 1)) && isBefore(new Date(), task.deadline);
+
+  const handleUpdate = async () => {
+    const trimmed = editedTitle.trim();
+    if (trimmed && trimmed !== task.title) {
+      await update({ id: task._id, title: trimmed });
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleUpdate();
+    if (e.key === "Escape") {
+      setEditedTitle(task.title);
+      setIsEditing(false);
+    }
+  };
 
   const formatDeadline = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -43,6 +70,7 @@ export function TaskItem({ task }: TaskItemProps) {
   };
 
   const handleToggle = () => {
+    if (isEditing) return;
     if (soundEngine) soundEngine.tap();
     toggle({ id: task._id });
   };
@@ -73,9 +101,34 @@ export function TaskItem({ task }: TaskItemProps) {
         </div>
         
         <div className="flex flex-col flex-1">
-          <span className={`text-[#EAEAEA] transition-all duration-100 ${task.completed ? "text-[#4A4A4A] line-through decoration-[#4A4A4A]" : ""}`}>
-            {task.title}
-          </span>
+          <div className="flex items-center gap-2 group/title">
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                className="bg-transparent text-[#EAEAEA] outline-none border-b border-[#333] w-full py-0.5"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={handleUpdate}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span className={`text-[#EAEAEA] transition-all duration-100 ${task.completed ? "text-[#4A4A4A] line-through decoration-[#4A4A4A]" : ""}`}>
+                {task.title}
+              </span>
+            )}
+            {!isEditing && isHovered && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 text-[#4A4A4A] hover:text-[#7A7A7A] transition-all"
+              >
+                <Pencil size={12} />
+              </button>
+            )}
+          </div>
           {task.deadline && (
             <span className={`text-[#7A7A7A] text-[12px] transition-all duration-100 ${task.completed ? "opacity-40" : ""}`}>
               {formatDeadline(task.deadline)}
@@ -84,7 +137,7 @@ export function TaskItem({ task }: TaskItemProps) {
           )}
         </div>
 
-        {isHovered && (
+        {isHovered && !isEditing && (
           <button 
             onClick={(e) => {
               e.stopPropagation();

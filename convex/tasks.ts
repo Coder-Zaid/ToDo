@@ -60,3 +60,12 @@ export const cleanup = mutation({
     }
   },
 });
+export const update = mutation({
+  args: { 
+    id: v.id("tasks"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { title: args.title });
+  },
+});
