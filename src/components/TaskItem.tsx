@@ -142,6 +142,7 @@ export function TaskItem({ task }: TaskItemProps) {
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
+                  setEditedTitle(task.title);
                   setIsEditing(true);
                 }}
                 className="opacity-0 group-hover:opacity-100 p-1 text-[#4A4A4A] hover:text-[#7A7A7A] transition-all"
