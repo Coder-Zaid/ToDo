@@ -8,7 +8,8 @@ import { useState } from "react";
 import { soundEngine } from "@/lib/sounds";
 
 interface TaskItemProps {
-  task: any; // Using any temporarily as types aren't generated yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  task: any; 
 }
 
 export function TaskItem({ task }: TaskItemProps) {

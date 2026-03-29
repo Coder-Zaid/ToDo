@@ -11,6 +11,7 @@ import { Volume2, VolumeX } from "lucide-react";
 
 export default function Home() {
   const tasks = useQuery(api.tasks.list);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const remainingCount = tasks?.filter((t: any) => !t.completed).length ?? 0;
   const today = format(new Date(), "MMM d");
   const [isLoaded, setIsLoaded] = useState(false);
