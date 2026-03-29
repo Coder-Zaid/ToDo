@@ -26,6 +26,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -34,8 +35,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-black" suppressHydrationWarning>
-      <body className={`${inter.className} bg-black text-[#EAEAEA] antialiased selection:bg-[#1A1A1A]`}>
+    <html lang="en" className="bg-black overflow-hidden" style={{ backgroundColor: '#000000' }} suppressHydrationWarning>
+      <body className={`${inter.className} bg-black text-[#EAEAEA] antialiased selection:bg-[#1A1A1A] overflow-hidden`} style={{ backgroundColor: '#000000' }}>
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
