@@ -56,46 +56,60 @@ self.addEventListener('notificationclick', (event) => {
   // Handle "Mark as Done" action button directly from notification
   if (event.action === 'complete-task') {
     const taskId = event.notification.data?.taskId;
-    const siteUrl =
-      event.notification.data?.convexSiteUrl ||
-      'https://jovial-impala-287.convex.site';
+    const siteUrl = event.notification.data?.convexSiteUrl;
 
     if (taskId) {
       event.waitUntil(
-        fetch(`${siteUrl}/api/tasks/complete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId }),
-        })
-          .then(async (res) => {
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) {
-              const fallbackUrl = siteUrl.includes('pastel-vulture-190')
-                ? 'https://jovial-impala-287.convex.site'
-                : 'https://pastel-vulture-190.convex.site';
-              await fetch(`${fallbackUrl}/api/tasks/complete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ taskId }),
-              }).catch(() => {});
-            }
-
-            return self.registration.showNotification('Task Completed', {
-              body: 'Marked as completed!',
-              icon: '/notification-tick.png',
-              badge: '/badge-tick.png',
-              tag: `completed-${taskId}`,
-            });
-          })
-          .catch(async (err) => {
-            console.error('Failed to complete task from notification:', err);
-            const fallbackUrl = 'https://pastel-vulture-190.convex.site';
-            await fetch(`${fallbackUrl}/api/tasks/complete`, {
+        (async () => {
+          // 1. Try same-origin Next.js API route first (zero CORS)
+          try {
+            const res = await fetch('/api/tasks/complete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ taskId }),
-            }).catch(() => {});
-          })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.success) {
+              return self.registration.showNotification('Task Completed', {
+                body: 'Marked as completed!',
+                icon: '/notification-tick.png',
+                badge: '/badge-tick.png',
+                tag: `completed-${taskId}`,
+              });
+            }
+          } catch (e) {
+            console.warn('Same-origin complete failed, falling back to Convex:', e);
+          }
+
+          // 2. Direct Convex HTTP endpoints with CORS fallback
+          const endpoints = [
+            siteUrl,
+            'https://jovial-impala-287.convex.site',
+            'https://pastel-vulture-190.convex.site',
+          ].filter(Boolean);
+
+          for (const url of endpoints) {
+            try {
+              const res = await fetch(`${url}/api/tasks/complete`, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok && data.success) {
+                break;
+              }
+            } catch (_) {}
+          }
+
+          return self.registration.showNotification('Task Completed', {
+            body: 'Marked as completed!',
+            icon: '/notification-tick.png',
+            badge: '/badge-tick.png',
+            tag: `completed-${taskId}`,
+          });
+        })()
       );
     }
     return;

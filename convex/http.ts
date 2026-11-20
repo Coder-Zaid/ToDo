@@ -6,6 +6,24 @@ const http = httpRouter();
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "black-todo-secret";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// CORS preflight for task completion
+http.route({
+  path: "/api/tasks/complete",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }),
+});
+
 // 1. Meta Webhook Verification (GET)
 http.route({
   path: "/api/whatsapp",
@@ -19,11 +37,11 @@ http.route({
     if (mode === "subscribe" && token === VERIFY_TOKEN) {
       return new Response(challenge || "", {
         status: 200,
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain", ...corsHeaders },
       });
     }
 
-    return new Response("Forbidden", { status: 403 });
+    return new Response("Forbidden", { status: 403, headers: corsHeaders });
   }),
 });
 
@@ -39,7 +57,10 @@ http.route({
       // Check if it's a direct JSON API request
       if (body.text) {
         if (body.secret && body.secret !== VERIFY_TOKEN) {
-          return new Response("Unauthorized", { status: 401 });
+          return new Response("Unauthorized", {
+            status: 401,
+            headers: corsHeaders,
+          });
         }
 
         const res = await ctx.runMutation(
@@ -49,7 +70,7 @@ http.route({
 
         return new Response(JSON.stringify(res), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
@@ -70,11 +91,13 @@ http.route({
       }
 
       // Always acknowledge Meta with 200 OK
-      return new Response("EVENT_RECEIVED", { status: 200 });
+      return new Response("EVENT_RECEIVED", {
+        status: 200,
+        headers: corsHeaders,
+      });
     } catch (err: unknown) {
       console.error("Webhook processing error:", err);
-      // Still return 200 to prevent Meta from spamming retries
-      return new Response("ERROR", { status: 200 });
+      return new Response("ERROR", { status: 200, headers: corsHeaders });
     }
   }),
 });
@@ -88,7 +111,13 @@ http.route({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const body: any = await request.json();
       if (!body.taskId) {
-        return new Response("Missing taskId", { status: 400 });
+        return new Response(
+          JSON.stringify({ success: false, error: "Missing taskId" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
       }
 
       const res = await ctx.runMutation(api.tasks.completeTaskDirectly, {
@@ -97,14 +126,17 @@ http.route({
 
       return new Response(JSON.stringify(res), {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     } catch (err: unknown) {
       console.error("Complete task error:", err);
-      return new Response(JSON.stringify({ success: false, error: String(err) }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ success: false, error: String(err) }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
   }),
 });
