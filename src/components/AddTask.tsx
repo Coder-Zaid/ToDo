@@ -45,7 +45,7 @@ export function AddTask() {
     processingTitle = processingTitle.replace(underRegex, "in $1 $2s");
 
     // Parse natural language date using GB locale for DD/MM/YY support
-    // @ts-ignore - chrono-node types might not have en.GB explicitly but it exists in the runtime for v2
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parsed = (chrono as any).en.GB.parse(processingTitle, new Date(), { forwardDate: true });
     let deadline: number | null = null;
     let cleanTitle = taskTitle;

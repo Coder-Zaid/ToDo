@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { format } from "date-fns";
 import { TaskItem } from "@/components/TaskItem";
 import { AddTask } from "@/components/AddTask";
+import { NotificationToggle } from "@/components/NotificationToggle";
 import { useEffect, useState } from "react";
 import { soundEngine } from "@/lib/sounds";
 import { Volume2, VolumeX, Check } from "lucide-react";
@@ -75,12 +76,16 @@ export default function Home() {
               {remainingCount} {remainingCount === 1 ? "task" : "tasks"} remaining
             </p>
           </div>
-          <button 
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="text-[#4A4A4A] hover:text-[#7A7A7A] transition-colors p-1"
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <NotificationToggle />
+            <button 
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="text-[#4A4A4A] hover:text-[#7A7A7A] transition-colors p-1"
+              title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+          </div>
         </header>
 
         {/* Task List (Small scrollable area if many tasks) */}

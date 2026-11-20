@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 
@@ -18,12 +18,23 @@ export const add = mutation({
     deadline: v.union(v.number(), v.null()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("tasks", {
+    const createdAt = Date.now();
+    const taskId = await ctx.db.insert("tasks", {
       title: args.title,
       completed: false,
       deadline: args.deadline,
-      createdAt: Date.now(),
+      createdAt,
+      deadlineLastModified: createdAt,
     });
+
+    if (args.deadline) {
+      await ctx.scheduler.runAfter(0, internal.reminders.scheduleMilestonesForTask, {
+        taskId,
+        taskTitle: args.title,
+        createdAt,
+        deadline: args.deadline,
+      });
+    }
   },
 });
 
@@ -60,12 +71,36 @@ export const cleanup = mutation({
     }
   },
 });
+
 export const update = mutation({
   args: { 
     id: v.id("tasks"),
     title: v.string(),
+    deadline: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { title: args.title });
+    const task = await ctx.db.get(args.id);
+    if (!task) return;
+
+    const patch: { title: string; deadline?: number | null; deadlineLastModified?: number } = {
+      title: args.title,
+    };
+
+    const newDeadline = args.deadline !== undefined ? args.deadline : task.deadline;
+    if (args.deadline !== undefined && args.deadline !== task.deadline) {
+      patch.deadline = args.deadline;
+      patch.deadlineLastModified = Date.now();
+    }
+
+    await ctx.db.patch(args.id, patch);
+
+    if (newDeadline) {
+      await ctx.scheduler.runAfter(0, internal.reminders.scheduleMilestonesForTask, {
+        taskId: args.id,
+        taskTitle: args.title,
+        createdAt: task.createdAt,
+        deadline: newDeadline,
+      });
+    }
   },
 });
