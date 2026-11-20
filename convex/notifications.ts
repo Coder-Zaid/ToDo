@@ -33,7 +33,7 @@ export const sendPushAction = internalAction({
       configureVapid();
       const convexSiteUrl =
         process.env.NEXT_PUBLIC_CONVEX_SITE_URL ||
-        "https://pastel-vulture-190.convex.site";
+        "https://jovial-impala-287.convex.site";
 
       await sendNotification(
         {

@@ -58,7 +58,7 @@ self.addEventListener('notificationclick', (event) => {
     const taskId = event.notification.data?.taskId;
     const siteUrl =
       event.notification.data?.convexSiteUrl ||
-      'https://pastel-vulture-190.convex.site';
+      'https://jovial-impala-287.convex.site';
 
     if (taskId) {
       event.waitUntil(
@@ -67,7 +67,19 @@ self.addEventListener('notificationclick', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ taskId }),
         })
-          .then(() => {
+          .then(async (res) => {
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+              const fallbackUrl = siteUrl.includes('pastel-vulture-190')
+                ? 'https://jovial-impala-287.convex.site'
+                : 'https://pastel-vulture-190.convex.site';
+              await fetch(`${fallbackUrl}/api/tasks/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId }),
+              }).catch(() => {});
+            }
+
             return self.registration.showNotification('Task Completed', {
               body: 'Marked as completed!',
               icon: '/notification-tick.png',
@@ -75,8 +87,14 @@ self.addEventListener('notificationclick', (event) => {
               tag: `completed-${taskId}`,
             });
           })
-          .catch((err) => {
+          .catch(async (err) => {
             console.error('Failed to complete task from notification:', err);
+            const fallbackUrl = 'https://pastel-vulture-190.convex.site';
+            await fetch(`${fallbackUrl}/api/tasks/complete`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ taskId }),
+            }).catch(() => {});
           })
       );
     }
