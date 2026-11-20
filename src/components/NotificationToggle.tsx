@@ -23,7 +23,9 @@ export function NotificationToggle() {
   const removeSubscription = useMutation(api.subscriptions.remove);
   const sendTestNotification = useAction(api.notifications.sendTestNotification);
 
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidPublicKey =
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+    "BFEhzWbuokU9sGjvvwXvJFlCd8PrQxHezlb1W1KgbGlRi_kWjX7cVcAM7WCaRc5Vxs-18Bt5wCZ8lPq5zwiHdqA";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
