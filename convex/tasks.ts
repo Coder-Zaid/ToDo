@@ -72,6 +72,20 @@ export const cleanup = mutation({
   },
 });
 
+export const completeTaskDirectly = mutation({
+  args: { id: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (task && !task.completed) {
+      await ctx.db.patch(args.id, { completed: true });
+      // Schedule automatic cleanup in 30 seconds
+      await ctx.scheduler.runAfter(30000, api.tasks.cleanup, { id: args.id });
+      return { success: true, title: task.title };
+    }
+    return { success: false, reason: "Already completed or not found" };
+  },
+});
+
 export const update = mutation({
   args: { 
     id: v.id("tasks"),

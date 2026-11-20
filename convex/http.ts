@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -75,6 +75,36 @@ http.route({
       console.error("Webhook processing error:", err);
       // Still return 200 to prevent Meta from spamming retries
       return new Response("ERROR", { status: 200 });
+    }
+  }),
+});
+
+// 3. Mark Task as Completed directly from Notification Action (POST)
+http.route({
+  path: "/api/tasks/complete",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body: any = await request.json();
+      if (!body.taskId) {
+        return new Response("Missing taskId", { status: 400 });
+      }
+
+      const res = await ctx.runMutation(api.tasks.completeTaskDirectly, {
+        id: body.taskId,
+      });
+
+      return new Response(JSON.stringify(res), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err: unknown) {
+      console.error("Complete task error:", err);
+      return new Response(JSON.stringify({ success: false, error: String(err) }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   }),
 });

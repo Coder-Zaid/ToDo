@@ -164,6 +164,7 @@ export const triggerMilestone = internalMutation({
         title: args.title,
         body: args.body,
         url: "/",
+        taskId: args.taskId,
       });
     }
   },

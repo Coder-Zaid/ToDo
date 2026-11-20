@@ -26,10 +26,14 @@ export const sendPushAction = internalAction({
     title: v.string(),
     body: v.string(),
     url: v.optional(v.string()),
+    taskId: v.optional(v.id("tasks")),
   },
   handler: async (ctx, args) => {
     try {
       configureVapid();
+      const convexSiteUrl =
+        process.env.NEXT_PUBLIC_CONVEX_SITE_URL ||
+        "https://pastel-vulture-190.convex.site";
 
       await sendNotification(
         {
@@ -42,9 +46,11 @@ export const sendPushAction = internalAction({
         JSON.stringify({
           title: args.title,
           body: args.body,
-          icon: "/icon-192.png",
-          badge: "/icon.png",
+          icon: "/notification-tick.png",
+          badge: "/badge-tick.png",
           url: args.url || "/",
+          taskId: args.taskId || null,
+          convexSiteUrl,
         })
       );
       return { success: true };
@@ -82,8 +88,8 @@ export const sendTestNotification = action({
         JSON.stringify({
           title: "ToDo Push Active",
           body: "Milestone reminders are enabled for your tasks!",
-          icon: "/icon-192.png",
-          badge: "/icon.png",
+          icon: "/notification-tick.png",
+          badge: "/badge-tick.png",
           url: "/",
         })
       );
