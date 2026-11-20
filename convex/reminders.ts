@@ -11,6 +11,18 @@ export interface ScheduledMilestone {
   body: string;
 }
 
+export function formatRemainingTime(remainingMs: number): string {
+  if (remainingMs <= 0) return "due now";
+  const seconds = Math.round(remainingMs / 1000);
+  if (seconds < 60) return `${seconds}s left`;
+  const minutes = (remainingMs / (60 * 1000)).toFixed(1).replace(/\.0$/, "");
+  if (remainingMs < 60 * 60 * 1000) return `${minutes} mins left`;
+  const hours = (remainingMs / (60 * 60 * 1000)).toFixed(1).replace(/\.0$/, "");
+  if (remainingMs < 24 * 60 * 60 * 1000) return `${hours} hours left`;
+  const days = Math.round(remainingMs / (24 * 60 * 60 * 1000));
+  return `${days} ${days === 1 ? "day" : "days"} left`;
+}
+
 export function computeMilestones(
   taskTitle: string,
   createdAt: number,
@@ -27,35 +39,38 @@ export function computeMilestones(
   const ONE_DAY = 24 * ONE_HOUR;
 
   // 1. Percentage checkpoints (33%, 50%, 70%)
-  // Applicable for any task duration (works for 10-min tests and 1-month projects alike)
+  // Applicable for any task duration (works for 5/10-min tests and 1-month projects alike)
   const t33 = Math.round(createdAt + totalDuration * 0.33);
   const t50 = Math.round(createdAt + totalDuration * 0.50);
   const t70 = Math.round(createdAt + totalDuration * 0.70);
 
   if (t33 > now + 1000 && t33 < deadline - 2000) {
+    const left = formatRemainingTime(deadline - t33);
     rawMilestones.push({
       time: t33,
       type: "33%",
-      title: "33% Progress Milestone",
-      body: `1/3 of the timeframe has elapsed for "${taskTitle}".`,
+      title: "33% Progress (1/3 done)",
+      body: `"${taskTitle}" • ${left}`,
     });
   }
 
   if (t50 > now + 1000 && t50 < deadline - 2000) {
+    const left = formatRemainingTime(deadline - t50);
     rawMilestones.push({
       time: t50,
       type: "50%",
-      title: "Halfway Milestone (50%)",
-      body: `Halfway point reached for "${taskTitle}".`,
+      title: "50% Halfway Milestone",
+      body: `"${taskTitle}" • ${left}`,
     });
   }
 
   if (t70 > now + 1000 && t70 < deadline - 2000) {
+    const left = formatRemainingTime(deadline - t70);
     rawMilestones.push({
       time: t70,
       type: "70%",
-      title: "70% Milestone Notice",
-      body: `70% of the timeframe has passed for "${taskTitle}".`,
+      title: "70% Timeline Warning",
+      body: `"${taskTitle}" • ${left}`,
     });
   }
 
@@ -67,7 +82,7 @@ export function computeMilestones(
       time: t24h,
       type: "24h",
       title: "Due Tomorrow (24h Reminder)",
-      body: `"${taskTitle}" is due in 24 hours.`,
+      body: `"${taskTitle}" • 24 hours left`,
     });
   }
 
