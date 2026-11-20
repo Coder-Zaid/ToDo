@@ -110,23 +110,42 @@ export function TaskItem({ task }: TaskItemProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div 
-        onClick={handleToggle}
-        className="flex items-center gap-3 py-2 px-4 -mx-1 rounded-xl cursor-pointer hover:bg-[#111111] transition-colors duration-200"
+        className="flex items-center gap-3 py-2 px-3 sm:px-4 -mx-1 rounded-xl hover:bg-[#111111] transition-colors duration-200"
       >
-        <div 
-          className={`w-5 h-5 flex items-center justify-center border rounded-sm transition-all duration-100 ${
-            task.completed ? "bg-[#4A4A4A] border-[#4A4A4A]" : "border-[#1A1A1A] group-hover:border-[#7A7A7A]"
-          }`}
+        {/* Dedicated Checkbox */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggle();
+          }}
+          className="p-1 -m-1 flex items-center justify-center focus:outline-none cursor-pointer"
+          title={task.completed ? "Mark incomplete" : "Mark completed"}
         >
-          {task.completed && <Check size={14} className="text-black" />}
-        </div>
+          <div 
+            className={`w-5 h-5 flex items-center justify-center border rounded-sm transition-all duration-100 ${
+              task.completed ? "bg-[#4A4A4A] border-[#4A4A4A]" : "border-[#2A2A2A] group-hover:border-[#7A7A7A]"
+            }`}
+          >
+            {task.completed && <Check size={14} className="text-black" />}
+          </div>
+        </button>
         
-        <div className="flex flex-col flex-1">
+        {/* Title area: tapping/clicking enters edit mode */}
+        <div 
+          className="flex flex-col flex-1 min-w-0 cursor-pointer"
+          onClick={() => {
+            if (!isEditing && !task.completed) {
+              setEditedTitle(task.title);
+              setIsEditing(true);
+            }
+          }}
+        >
           <div className="flex items-center gap-2 group/title">
             {isEditing ? (
               <input
                 ref={inputRef}
-                className="bg-transparent text-[#EAEAEA] outline-none border-b border-[#333] w-full py-0.5"
+                className="bg-transparent text-[#EAEAEA] outline-none border-b border-[#444] w-full py-0.5"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
                 onBlur={handleUpdate}
@@ -134,21 +153,9 @@ export function TaskItem({ task }: TaskItemProps) {
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className={`text-[#EAEAEA] transition-all duration-100 ${task.completed ? "text-[#4A4A4A] line-through decoration-[#4A4A4A]" : ""}`}>
+              <span className={`text-[#EAEAEA] transition-all duration-100 break-words ${task.completed ? "text-[#4A4A4A] line-through decoration-[#4A4A4A]" : ""}`}>
                 {task.title}
               </span>
-            )}
-            {!isEditing && isHovered && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditedTitle(task.title);
-                  setIsEditing(true);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1 text-[#4A4A4A] hover:text-[#7A7A7A] transition-all"
-              >
-                <Pencil size={12} />
-              </button>
             )}
           </div>
           {task.deadline && (
@@ -159,16 +166,35 @@ export function TaskItem({ task }: TaskItemProps) {
           )}
         </div>
 
-        {isHovered && !isEditing && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete();
-            }}
-            className="p-1 text-[#4A4A4A] hover:text-[#7A7A7A] transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
+        {/* Action buttons: visible on mobile, hover-revealed on desktop */}
+        {!isEditing && (
+          <div className="flex items-center gap-0.5">
+            {!task.completed && (
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditedTitle(task.title);
+                  setIsEditing(true);
+                }}
+                className="p-1.5 text-[#555555] hover:text-[#999999] opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-all rounded"
+                title="Edit task"
+              >
+                <Pencil size={13} />
+              </button>
+            )}
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+              className="p-1.5 text-[#555555] hover:text-red-400 opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-all rounded"
+              title="Delete task"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         )}
       </div>
       <div className="h-px bg-[#1A1A1A] mt-2 mb-1" />
