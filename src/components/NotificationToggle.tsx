@@ -132,6 +132,12 @@ export function NotificationToggle() {
         ? btoa(String.fromCharCode(...new Uint8Array(rawAuth)))
         : "";
 
+      // Ensure the subscription is saved in Convex
+      await saveSubscription({
+        endpoint: sub.endpoint,
+        keys: { p256dh, auth },
+      });
+
       const res = await sendTestNotification({
         endpoint: sub.endpoint,
         p256dh,
