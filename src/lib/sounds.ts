@@ -58,7 +58,7 @@ class SoundEngine {
     this.playTone(300, 'sine', 0.05, 0.04);
   }
 
-  // Aerodynamic slide-out sound when opening the sidebar
+  // Smooth, quiet mechanical slide-out sound when opening the sidebar
   slideIn() {
     if (!this.enabled) return;
     try {
@@ -69,24 +69,25 @@ class SoundEngine {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(260, now);
-      osc.frequency.exponentialRampToValueAtTime(110, now + 0.14);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.09);
 
-      gain.gain.setValueAtTime(0.09, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.14);
+      osc.stop(now + 0.09);
     } catch (e) {
       console.error("slideIn sound failed", e);
     }
   }
 
-  // Magnetic snap / tactile gear click when switching between profiles
+  // Authentic sound of two dense neodymium magnets attaching together ("CLACK")
+  // Zero high-pitched chirps: deep solid impact + metallic transient
   magneticSnap() {
     if (!this.enabled) return;
     try {
@@ -95,31 +96,44 @@ class SoundEngine {
       
       const now = ctx.currentTime;
       
-      // High crisp mechanical snap
+      // 1. Solid metallic impact strike (crisp, dense clack without chirp)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1600, now);
-      osc1.frequency.exponentialRampToValueAtTime(450, now + 0.035);
-      gain1.gain.setValueAtTime(0.12, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(480, now);
+      osc1.frequency.exponentialRampToValueAtTime(120, now + 0.028);
+      gain1.gain.setValueAtTime(0.24, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
       osc1.start(now);
-      osc1.stop(now + 0.035);
+      osc1.stop(now + 0.028);
 
-      // Deep magnetic sub-thud
+      // 2. Heavy magnet body sub-thud (gives physical weight/mass of two magnets colliding)
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(220, now);
-      osc2.frequency.exponentialRampToValueAtTime(60, now + 0.05);
-      gain2.gain.setValueAtTime(0.09, now);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(150, now);
+      osc2.frequency.exponentialRampToValueAtTime(40, now + 0.045);
+      gain2.gain.setValueAtTime(0.28, now);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
       osc2.start(now);
-      osc2.stop(now + 0.05);
+      osc2.stop(now + 0.045);
+
+      // 3. Fast contact micro-click (0.008s)
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = 'square';
+      osc3.frequency.setValueAtTime(320, now);
+      osc3.frequency.exponentialRampToValueAtTime(80, now + 0.012);
+      gain3.gain.setValueAtTime(0.08, now);
+      gain3.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(now);
+      osc3.stop(now + 0.012);
     } catch (e) {
       console.error("magneticSnap sound failed", e);
     }
@@ -137,17 +151,17 @@ class SoundEngine {
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(130, now);
-      osc.frequency.exponentialRampToValueAtTime(50, now + 0.09);
+      osc.frequency.setValueAtTime(110, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.07);
 
-      gain.gain.setValueAtTime(0.06, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.09);
+      osc.stop(now + 0.07);
     } catch (e) {
       console.error("slideOut sound failed", e);
     }

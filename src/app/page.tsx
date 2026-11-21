@@ -100,19 +100,33 @@ export default function Home() {
         if (soundEngine) soundEngine.slideOut();
         setIsSidebarOpen(false);
       }
-      // Swipe DOWN -> switch to next profile down!
+      // Swipe DOWN -> switch to next profile and self-hide immediately!
       else if (deltaY > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
         const nextIndex = (currentIndex + 1) % ROLES.length;
-        if (soundEngine) soundEngine.magneticSnap();
+        if (soundEngine) {
+          soundEngine.magneticSnap();
+          soundEngine.slideOut();
+        }
         setCurrentRoleId(ROLES[nextIndex].id);
+        setIsSidebarOpen(false);
       }
-      // Swipe UP -> switch to previous profile up!
+      // Swipe UP -> switch to previous profile and self-hide immediately!
       else if (deltaY < -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
         const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
-        if (soundEngine) soundEngine.magneticSnap();
+        if (soundEngine) {
+          soundEngine.magneticSnap();
+          soundEngine.slideOut();
+        }
         setCurrentRoleId(ROLES[prevIndex].id);
+        setIsSidebarOpen(false);
       }
     } else {
       // When closed: swipe horizontally (left OR right with > 40px) -> open sidebar

@@ -25,22 +25,59 @@ export function RoleSidebar({
   const activeRoleRef = useRef(activeRole);
   activeRoleRef.current = activeRole;
 
-  const lastSwitchTime = useRef<number>(0);
+  const isSwitchingRef = useRef(false);
 
   const currentIndex = ROLES.findIndex((r) => r.id === activeRole);
 
-  const switchToDown = () => {
+  // Switch to next profile and IMMEDIATELY auto-hide the sidebar (1 scroll = 1 switch & close)
+  const switchToDownAndClose = () => {
+    if (isSwitchingRef.current) return;
+    isSwitchingRef.current = true;
+
+    // Explicitly blur any input to prevent mobile virtual keyboard from popping up
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     const idx = ROLES.findIndex((r) => r.id === activeRoleRef.current);
     const nextIndex = (idx + 1) % ROLES.length;
-    if (soundEngine) soundEngine.magneticSnap();
+
+    if (soundEngine) {
+      soundEngine.magneticSnap();
+      soundEngine.slideOut();
+    }
+
     onSelectRole(ROLES[nextIndex].id);
+    onClose(); // Self-hide immediately!
+
+    setTimeout(() => {
+      isSwitchingRef.current = false;
+    }, 200);
   };
 
-  const switchToUp = () => {
+  // Switch to previous profile and IMMEDIATELY auto-hide the sidebar
+  const switchToUpAndClose = () => {
+    if (isSwitchingRef.current) return;
+    isSwitchingRef.current = true;
+
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     const idx = ROLES.findIndex((r) => r.id === activeRoleRef.current);
     const prevIndex = (idx - 1 + ROLES.length) % ROLES.length;
-    if (soundEngine) soundEngine.magneticSnap();
+
+    if (soundEngine) {
+      soundEngine.magneticSnap();
+      soundEngine.slideOut();
+    }
+
     onSelectRole(ROLES[prevIndex].id);
+    onClose(); // Self-hide immediately!
+
+    setTimeout(() => {
+      isSwitchingRef.current = false;
+    }, 200);
   };
 
   // Keyboard navigation when sidebar is open
@@ -53,10 +90,10 @@ export function RoleSidebar({
         onClose();
       } else if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
-        switchToDown();
+        switchToDownAndClose();
       } else if (e.key === "ArrowUp" || e.key === "k") {
         e.preventDefault();
-        switchToUp();
+        switchToUpAndClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -71,21 +108,19 @@ export function RoleSidebar({
     let wheelAccumulator = 0;
 
     const handleGlobalWheel = (e: WheelEvent) => {
-      // Intercept wheel scroll anywhere on screen while sidebar is open
       e.preventDefault();
 
       wheelAccumulator += e.deltaY;
-      const now = Date.now();
 
-      // Threshold of 16px wheel delta + 140ms throttle
-      if (Math.abs(wheelAccumulator) >= 16 && now - lastSwitchTime.current > 140) {
-        if (wheelAccumulator > 0) {
-          switchToDown();
-        } else {
-          switchToUp();
-        }
-        lastSwitchTime.current = now;
+      // Scroll down once: switch to next role and self-hide immediately!
+      if (wheelAccumulator >= 14) {
         wheelAccumulator = 0;
+        switchToDownAndClose();
+      }
+      // Scroll up once: switch to previous role and self-hide immediately!
+      else if (wheelAccumulator <= -14) {
+        wheelAccumulator = 0;
+        switchToUpAndClose();
       }
     };
 
@@ -104,7 +139,7 @@ export function RoleSidebar({
     let startY = 0;
     let isTracking = false;
 
-    const handleTouchStart = (e: TouchEvent) => {
+    const handleGlobalTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
@@ -112,7 +147,7 @@ export function RoleSidebar({
       }
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const handleGlobalTouchMove = (e: TouchEvent) => {
       if (!isTracking || e.touches.length !== 1) return;
       const currentX = e.touches[0].clientX;
       const currentY = e.touches[0].clientY;
@@ -120,28 +155,23 @@ export function RoleSidebar({
       const deltaY = currentY - startY;
       const deltaX = currentX - startX;
 
-      // Prevent native page scroll while sidebar is open
       if (Math.abs(deltaY) > Math.abs(deltaX)) {
         if (e.cancelable) e.preventDefault();
       }
 
-      const now = Date.now();
-      if (now - lastSwitchTime.current < 140) return;
-
-      // Live touch drag: every 22px of vertical movement switches profile!
-      if (Math.abs(deltaY) >= 22 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        if (deltaY > 0) {
-          switchToDown();
-        } else {
-          switchToUp();
-        }
-        lastSwitchTime.current = now;
-        startY = currentY;
-        startX = currentX;
+      // Live touch drag: swipe down 20px -> switch next & self-hide!
+      if (deltaY >= 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        isTracking = false;
+        switchToDownAndClose();
+      }
+      // Swipe up 20px -> switch prev & self-hide!
+      else if (deltaY <= -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        isTracking = false;
+        switchToUpAndClose();
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
+    const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (!isTracking) return;
       isTracking = false;
 
@@ -159,31 +189,34 @@ export function RoleSidebar({
       }
 
       // Quick flick fallback
-      if (Math.abs(deltaY) >= 15 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        if (deltaY > 0) {
-          switchToDown();
-        } else {
-          switchToUp();
-        }
+      if (deltaY >= 14 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        switchToDownAndClose();
+      } else if (deltaY <= -14 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        switchToUpAndClose();
       }
     };
 
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
-    window.addEventListener("touchmove", handleTouchMove, { passive: false });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchstart", handleGlobalTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleGlobalTouchMove, { passive: false });
+    window.addEventListener("touchend", handleGlobalTouchEnd, { passive: true });
 
     return () => {
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchstart", handleGlobalTouchStart);
+      window.removeEventListener("touchmove", handleGlobalTouchMove);
+      window.removeEventListener("touchend", handleGlobalTouchEnd);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleSelect = (role: RoleDefinition) => {
-    if (soundEngine) soundEngine.magneticSnap();
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    if (soundEngine) {
+      soundEngine.magneticSnap();
+      soundEngine.slideOut();
+    }
     onSelectRole(role.id);
-    if (soundEngine) soundEngine.slideOut();
     onClose(); // Automatically hides sidebar when chosen!
   };
 
@@ -229,9 +262,9 @@ export function RoleSidebar({
 
           {/* Quick Up Arrow control */}
           <button
-            onClick={switchToUp}
+            onClick={switchToUpAndClose}
             className="text-[#444444] hover:text-[#EAEAEA] p-0.5 transition-colors cursor-pointer"
-            title="Previous Role (Scroll/Swipe Up)"
+            title="Previous Role (Scroll Up & Close)"
           >
             <ChevronUp size={16} />
           </button>
@@ -299,9 +332,9 @@ export function RoleSidebar({
 
             {/* Quick Down Arrow control */}
             <button
-              onClick={switchToDown}
+              onClick={switchToDownAndClose}
               className="text-[#444444] hover:text-[#EAEAEA] p-0.5 transition-colors cursor-pointer"
-              title="Next Role (Scroll/Swipe Down)"
+              title="Next Role (Scroll Down & Close)"
             >
               <ChevronDown size={16} />
             </button>
