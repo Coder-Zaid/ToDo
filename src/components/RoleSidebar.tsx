@@ -10,6 +10,8 @@ interface RoleSidebarProps {
   activeRole: string;
   onSelectRole: (roleId: string) => void;
   onClose: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tasks?: any[];
 }
 
 export function RoleSidebar({
@@ -17,6 +19,7 @@ export function RoleSidebar({
   activeRole,
   onSelectRole,
   onClose,
+  tasks,
 }: RoleSidebarProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -32,6 +35,16 @@ export function RoleSidebar({
     if (soundEngine) soundEngine.tap();
     onSelectRole(role.id);
     onClose(); // Automatically hides sidebar when chosen!
+  };
+
+  const checkRoleActive = (roleId: string) => {
+    if (!tasks) return false;
+    if (roleId === "general") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return tasks.some((t: any) => (!t.role || t.role === "general") && !t.completed);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return tasks.some((t: any) => t.role === roleId && !t.completed);
   };
 
   return (
@@ -62,11 +75,15 @@ export function RoleSidebar({
           <div className="flex flex-col gap-3.5 items-center w-full px-3">
             {ROLES.map((role) => {
               const isActive = activeRole === role.id;
+              const hasActiveTask = checkRoleActive(role.id);
+
               return (
                 <button
                   key={role.id}
                   onClick={() => handleSelect(role)}
-                  title={`${role.name} (${role.roleTitle})`}
+                  title={`${role.name} (${role.roleTitle}) - ${
+                    hasActiveTask ? "Step 1 In Progress" : "Idle"
+                  }`}
                   className={`w-[52px] h-[52px] rounded-2xl flex flex-col items-center justify-center transition-all duration-120 relative group cursor-pointer ${
                     isActive
                       ? "bg-white border border-white text-black shadow-[0_0_20px_rgba(255,255,255,0.18)] scale-105"
@@ -89,6 +106,19 @@ export function RoleSidebar({
                   >
                     {role.badge}
                   </span>
+
+                  {/* Stealth Status Pip: White dot = active Step 1, Dim dot = idle */}
+                  <div
+                    className={`w-[3px] h-[3px] rounded-full mt-1 transition-colors ${
+                      hasActiveTask
+                        ? isActive
+                          ? "bg-black"
+                          : "bg-white shadow-[0_0_5px_rgba(255,255,255,0.9)]"
+                        : isActive
+                        ? "bg-black/25"
+                        : "bg-[#252525]"
+                    }`}
+                  />
 
                   {/* Active highlight bar on right border */}
                   {isActive && (

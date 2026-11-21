@@ -111,6 +111,7 @@ export default function Home() {
       <RoleSidebar
         isOpen={isSidebarOpen}
         activeRole={currentRoleId}
+        tasks={(tasks as any) ?? []}
         onSelectRole={(roleId) => {
           setCurrentRoleId(roleId);
         }}
