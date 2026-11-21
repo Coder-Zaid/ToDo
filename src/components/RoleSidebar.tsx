@@ -21,23 +21,21 @@ export function RoleSidebar({
   onClose,
   tasks,
 }: RoleSidebarProps) {
-  const touchStartY = useRef<number | null>(null);
-  const touchStartX = useRef<number | null>(null);
-
   const currentIndex = ROLES.findIndex((r) => r.id === activeRole);
 
-  const switchToNext = () => {
+  const switchToDown = () => {
     const nextIndex = (currentIndex + 1) % ROLES.length;
     if (soundEngine) soundEngine.tap();
     onSelectRole(ROLES[nextIndex].id);
   };
 
-  const switchToPrev = () => {
+  const switchToUp = () => {
     const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
     if (soundEngine) soundEngine.tap();
     onSelectRole(ROLES[prevIndex].id);
   };
 
+  // Keyboard navigation when sidebar is open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -46,14 +44,87 @@ export function RoleSidebar({
         onClose();
       } else if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
-        switchToNext();
+        switchToDown();
       } else if (e.key === "ArrowUp" || e.key === "k") {
         e.preventDefault();
-        switchToPrev();
+        switchToUp();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeRole]);
+
+  // Window-level touch listeners when sidebar is open
+  // This guarantees swipes are never swallowed by buttons, backdrop, or browser scroll
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let startX = 0;
+    let startY = 0;
+    let isTracking = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isTracking = true;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isTracking) return;
+      const touch = e.touches[0];
+
+      // Drag-scrub: If the user slides their finger directly over a role square, highlight it!
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      const roleBtn = element?.closest("[data-role-id]");
+      if (roleBtn) {
+        const hoveredRoleId = roleBtn.getAttribute("data-role-id");
+        if (hoveredRoleId && hoveredRoleId !== activeRole) {
+          if (soundEngine) soundEngine.tap();
+          onSelectRole(hoveredRoleId);
+        }
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!isTracking) return;
+      isTracking = false;
+
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+
+      // 1. Horizontal swipe left -> Close sidebar
+      if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+        if (soundEngine) soundEngine.tap();
+        onClose();
+        return;
+      }
+
+      // 2. Vertical swipe:
+      // Swipe DOWN (deltaY > 20): move to next profile down!
+      if (deltaY > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        switchToDown();
+      }
+      // Swipe UP (deltaY < -20): move to previous profile up!
+      else if (deltaY < -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        switchToUp();
+      }
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, activeRole]);
 
@@ -73,45 +144,13 @@ export function RoleSidebar({
     return tasks.some((t: any) => t.role === roleId && !t.completed);
   };
 
-  // Touch Swipe handlers for vertical up/down profile navigation inside sidebar
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY.current === null || touchStartX.current === null) return;
-    const touchEndY = e.changedTouches[0].clientY;
-    const touchEndX = e.changedTouches[0].clientX;
-
-    const deltaY = touchEndY - touchStartY.current;
-    const deltaX = touchEndX - touchStartX.current;
-
-    // Swipe LEFT -> Close sidebar
-    if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (soundEngine) soundEngine.tap();
-      onClose();
-    }
-    // Swipe UP -> Switch to next profile down
-    else if (deltaY < -30 && Math.abs(deltaY) > Math.abs(deltaX)) {
-      switchToNext();
-    }
-    // Swipe DOWN -> Switch to previous profile up
-    else if (deltaY > 30 && Math.abs(deltaY) > Math.abs(deltaX)) {
-      switchToPrev();
-    }
-
-    touchStartY.current = null;
-    touchStartX.current = null;
-  };
-
   // Mouse wheel navigation on desktop
   const handleWheel = (e: React.WheelEvent) => {
-    if (Math.abs(e.deltaY) > 25) {
+    if (Math.abs(e.deltaY) > 20) {
       if (e.deltaY > 0) {
-        switchToNext();
+        switchToDown();
       } else {
-        switchToPrev();
+        switchToUp();
       }
     }
   };
@@ -126,10 +165,8 @@ export function RoleSidebar({
         }`}
       />
 
-      {/* Slide-out Square Monograms Dock with Vertical Swipe/Wheel support */}
+      {/* Slide-out Square Monograms Dock */}
       <aside
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
         className={`fixed top-0 left-0 bottom-0 w-[88px] sm:w-[92px] bg-[#070707] border-r border-[#1C1C1C] flex flex-col items-center justify-between pt-12 pb-8 z-50 transition-transform duration-150 ease-out shadow-[12px_0_35px_rgba(0,0,0,0.92)] touch-none overscroll-none select-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
@@ -145,13 +182,14 @@ export function RoleSidebar({
 
           {/* Square Monogram Letter Buttons */}
           <div className="flex flex-col gap-3.5 items-center w-full px-3">
-            {ROLES.map((role, idx) => {
+            {ROLES.map((role) => {
               const isActive = activeRole === role.id;
               const hasActiveTask = checkRoleActive(role.id);
 
               return (
                 <button
                   key={role.id}
+                  data-role-id={role.id}
                   onClick={() => handleSelect(role)}
                   title={`${role.name} (${role.roleTitle}) - ${
                     hasActiveTask ? "Step 1 In Progress" : "Idle"

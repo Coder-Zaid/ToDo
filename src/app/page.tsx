@@ -90,27 +90,27 @@ export default function Home() {
 
     if (isSidebarOpen) {
       // Swipe left -> close sidebar
-      if (deltaX < -45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
         if (soundEngine) soundEngine.tap();
         setIsSidebarOpen(false);
       }
-      // Swipe UP -> switch to next profile down
-      else if (deltaY < -30 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      // Swipe DOWN -> switch to next profile down!
+      else if (deltaY > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
         const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
         const nextIndex = (currentIndex + 1) % ROLES.length;
         if (soundEngine) soundEngine.tap();
         setCurrentRoleId(ROLES[nextIndex].id);
       }
-      // Swipe DOWN -> switch to previous profile up
-      else if (deltaY > 30 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      // Swipe UP -> switch to previous profile up!
+      else if (deltaY < -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
         const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
         const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
         if (soundEngine) soundEngine.tap();
         setCurrentRoleId(ROLES[prevIndex].id);
       }
     } else {
-      // When closed: swipe right from left edge -> open sidebar
-      if (deltaX > 45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      // When closed: swipe horizontally (left OR right with > 40px) -> open sidebar
+      if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
         if (soundEngine) soundEngine.tap();
         setIsSidebarOpen(true);
       }
