@@ -23,6 +23,7 @@ export default function Home() {
 
   // Swipe detection coordinates
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const activeRole = ROLES.find((r) => r.id === currentRoleId) ?? ROLES[0];
 
@@ -77,25 +78,46 @@ export default function Home() {
   // Touch Swipe Handlers for mobile & trackpads
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
+    if (touchStartX.current === null || touchStartY.current === null) return;
     const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
     const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
 
-    // Swipe right (from left edge) -> open sidebar
-    if (deltaX > 45 && !isSidebarOpen) {
-      if (soundEngine) soundEngine.tap();
-      setIsSidebarOpen(true);
-    }
-    // Swipe left -> close sidebar
-    else if (deltaX < -45 && isSidebarOpen) {
-      if (soundEngine) soundEngine.tap();
-      setIsSidebarOpen(false);
+    if (isSidebarOpen) {
+      // Swipe left -> close sidebar
+      if (deltaX < -45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (soundEngine) soundEngine.tap();
+        setIsSidebarOpen(false);
+      }
+      // Swipe UP -> switch to next profile down
+      else if (deltaY < -30 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
+        const nextIndex = (currentIndex + 1) % ROLES.length;
+        if (soundEngine) soundEngine.tap();
+        setCurrentRoleId(ROLES[nextIndex].id);
+      }
+      // Swipe DOWN -> switch to previous profile up
+      else if (deltaY > 30 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
+        const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
+        if (soundEngine) soundEngine.tap();
+        setCurrentRoleId(ROLES[prevIndex].id);
+      }
+    } else {
+      // When closed: swipe right from left edge -> open sidebar
+      if (deltaX > 45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (soundEngine) soundEngine.tap();
+        setIsSidebarOpen(true);
+      }
     }
 
     touchStartX.current = null;
+    touchStartY.current = null;
   };
 
   return (

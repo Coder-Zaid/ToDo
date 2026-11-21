@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ROLES, RoleDefinition } from "@/lib/roles";
 import { soundEngine } from "@/lib/sounds";
 import { Check, ChevronLeft } from "lucide-react";
@@ -21,15 +21,41 @@ export function RoleSidebar({
   onClose,
   tasks,
 }: RoleSidebarProps) {
+  const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+
+  const currentIndex = ROLES.findIndex((r) => r.id === activeRole);
+
+  const switchToNext = () => {
+    const nextIndex = (currentIndex + 1) % ROLES.length;
+    if (soundEngine) soundEngine.tap();
+    onSelectRole(ROLES[nextIndex].id);
+  };
+
+  const switchToPrev = () => {
+    const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
+    if (soundEngine) soundEngine.tap();
+    onSelectRole(ROLES[prevIndex].id);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+      if (!isOpen) return;
+
+      if (e.key === "Escape") {
         onClose();
+      } else if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        switchToNext();
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        switchToPrev();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeRole]);
 
   const handleSelect = (role: RoleDefinition) => {
     if (soundEngine) soundEngine.tap();
@@ -47,6 +73,49 @@ export function RoleSidebar({
     return tasks.some((t: any) => t.role === roleId && !t.completed);
   };
 
+  // Touch Swipe handlers for vertical up/down profile navigation inside sidebar
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null || touchStartX.current === null) return;
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchEndX = e.changedTouches[0].clientX;
+
+    const deltaY = touchEndY - touchStartY.current;
+    const deltaX = touchEndX - touchStartX.current;
+
+    // Swipe LEFT -> Close sidebar
+    if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (soundEngine) soundEngine.tap();
+      onClose();
+    }
+    // Swipe UP -> Switch to next profile down
+    else if (deltaY < -30 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      switchToNext();
+    }
+    // Swipe DOWN -> Switch to previous profile up
+    else if (deltaY > 30 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      switchToPrev();
+    }
+
+    touchStartY.current = null;
+    touchStartX.current = null;
+  };
+
+  // Mouse wheel navigation on desktop
+  const handleWheel = (e: React.WheelEvent) => {
+    if (Math.abs(e.deltaY) > 25) {
+      if (e.deltaY > 0) {
+        switchToNext();
+      } else {
+        switchToPrev();
+      }
+    }
+  };
+
   return (
     <>
       {/* Backdrop overlay (dismiss on tap) */}
@@ -57,9 +126,12 @@ export function RoleSidebar({
         }`}
       />
 
-      {/* Slide-out Square Monograms Dock (Spacious & Ergonomic) */}
+      {/* Slide-out Square Monograms Dock with Vertical Swipe/Wheel support */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-[88px] sm:w-[92px] bg-[#070707] border-r border-[#1C1C1C] flex flex-col items-center justify-between pt-12 pb-8 z-50 transition-transform duration-150 ease-out shadow-[12px_0_35px_rgba(0,0,0,0.92)] ${
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
+        className={`fixed top-0 left-0 bottom-0 w-[88px] sm:w-[92px] bg-[#070707] border-r border-[#1C1C1C] flex flex-col items-center justify-between pt-12 pb-8 z-50 transition-transform duration-150 ease-out shadow-[12px_0_35px_rgba(0,0,0,0.92)] touch-none overscroll-none select-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -73,7 +145,7 @@ export function RoleSidebar({
 
           {/* Square Monogram Letter Buttons */}
           <div className="flex flex-col gap-3.5 items-center w-full px-3">
-            {ROLES.map((role) => {
+            {ROLES.map((role, idx) => {
               const isActive = activeRole === role.id;
               const hasActiveTask = checkRoleActive(role.id);
 
@@ -130,10 +202,10 @@ export function RoleSidebar({
           </div>
         </div>
 
-        {/* Bottom swipe/hide button with comfortable touch target */}
+        {/* Bottom vertical gesture indicator & hide button */}
         <div className="flex flex-col items-center gap-1.5 text-[#444444]">
-          <span className="text-[8px] font-mono uppercase tracking-widest text-[#555555]">
-            HIDE
+          <span className="text-[7px] font-mono uppercase tracking-widest text-[#555555]">
+            ↕ SWIPE
           </span>
           <button
             onClick={onClose}
