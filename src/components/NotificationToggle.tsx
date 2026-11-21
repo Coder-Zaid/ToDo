@@ -25,7 +25,7 @@ export function NotificationToggle() {
 
   const vapidPublicKey =
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-    "BFEhzWbuokU9sGjvvwXvJFlCd8PrQxHezlb1W1KgbGlRi_kWjX7cVcAM7WCaRc5Vxs-18Bt5wCZ8lPq5zwiHdqA";
+    "BJMLOzzaa_IwLape0FqZFHNYVwPp9-0WAyTUywhkCJZRqHQHiGSug9J2gF8mLA-I1v2I2do8LbwPE5DBeuIt1fw";
 
   useEffect(() => {
     if (typeof window === "undefined") return;

@@ -16,6 +16,7 @@ export function TaskItem({ task }: TaskItemProps) {
   const toggle = useMutation(api.tasks.toggle);
   const remove = useMutation(api.tasks.remove);
   const updateTask = useMutation(api.tasks.update);
+  const [isHovered, setIsHovered] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.title);
@@ -105,6 +106,8 @@ export function TaskItem({ task }: TaskItemProps) {
   return (
     <div 
       className={`group flex flex-col cursor-default pb-1 pt-1 animate-task-in ${isDeleting ? 'animate-task-out pointer-events-none' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div 
         className="flex items-center gap-3 py-2 px-3 sm:px-4 -mx-1 rounded-xl hover:bg-[#111111] transition-colors duration-200"

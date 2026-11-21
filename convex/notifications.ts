@@ -8,11 +8,13 @@ import { sendNotification, setVapidDetails } from "web-push";
 function configureVapid() {
   const publicKey =
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-    "BFEhzWbuokU9sGjvvwXvJFlCd8PrQxHezlb1W1KgbGlRi_kWjX7cVcAM7WCaRc5Vxs-18Bt5wCZ8lPq5zwiHdqA";
-  const privateKey =
-    process.env.VAPID_PRIVATE_KEY ||
-    "tdkV8ibtcxveW9xOKiEW3OZ_AFQJ21IfZ0M57K-9x0A";
+    "BJMLOzzaa_IwLape0FqZFHNYVwPp9-0WAyTUywhkCJZRqHQHiGSug9J2gF8mLA-I1v2I2do8LbwPE5DBeuIt1fw";
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:admin@blacktodo.app";
+
+  if (!privateKey) {
+    throw new Error("VAPID_PRIVATE_KEY is missing from environment");
+  }
 
   setVapidDetails(subject, publicKey, privateKey);
 }
