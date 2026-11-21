@@ -52,6 +52,7 @@ export default function Home() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (isSidebarOpen) {
+          if (soundEngine) soundEngine.slideOut();
           setIsSidebarOpen(false);
         } else {
           handleClose();
@@ -59,8 +60,13 @@ export default function Home() {
       }
       // Stealth desktop shortcut: press '[' or 'Alt+S' to toggle sidebar
       if (e.key === "[" || (e.altKey && e.key.toLowerCase() === "s")) {
-        if (soundEngine) soundEngine.tap();
-        setIsSidebarOpen((prev) => !prev);
+        if (isSidebarOpen) {
+          if (soundEngine) soundEngine.slideOut();
+          setIsSidebarOpen(false);
+        } else {
+          if (soundEngine) soundEngine.slideIn();
+          setIsSidebarOpen(true);
+        }
       }
     };
 
@@ -91,27 +97,27 @@ export default function Home() {
     if (isSidebarOpen) {
       // Swipe left -> close sidebar
       if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
-        if (soundEngine) soundEngine.tap();
+        if (soundEngine) soundEngine.slideOut();
         setIsSidebarOpen(false);
       }
       // Swipe DOWN -> switch to next profile down!
       else if (deltaY > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
         const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
         const nextIndex = (currentIndex + 1) % ROLES.length;
-        if (soundEngine) soundEngine.tap();
+        if (soundEngine) soundEngine.magneticSnap();
         setCurrentRoleId(ROLES[nextIndex].id);
       }
       // Swipe UP -> switch to previous profile up!
       else if (deltaY < -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
         const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
         const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
-        if (soundEngine) soundEngine.tap();
+        if (soundEngine) soundEngine.magneticSnap();
         setCurrentRoleId(ROLES[prevIndex].id);
       }
     } else {
       // When closed: swipe horizontally (left OR right with > 40px) -> open sidebar
       if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (soundEngine) soundEngine.tap();
+        if (soundEngine) soundEngine.slideIn();
         setIsSidebarOpen(true);
       }
     }
@@ -149,8 +155,13 @@ export default function Home() {
         <div className="flex items-center justify-between mb-1 animate-task-in">
           <div
             onClick={() => {
-              if (soundEngine) soundEngine.tap();
-              setIsSidebarOpen(!isSidebarOpen);
+              if (isSidebarOpen) {
+                if (soundEngine) soundEngine.slideOut();
+                setIsSidebarOpen(false);
+              } else {
+                if (soundEngine) soundEngine.slideIn();
+                setIsSidebarOpen(true);
+              }
             }}
             className="flex items-center gap-2 cursor-pointer group"
             title="Click to switch role dock"

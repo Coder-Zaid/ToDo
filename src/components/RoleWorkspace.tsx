@@ -67,7 +67,10 @@ export function RoleWorkspace({ role, tasks, onOpenSidebar }: RoleWorkspaceProps
 
         {/* Secret Sidebar Trigger */}
         <button
-          onClick={onOpenSidebar}
+          onClick={() => {
+            if (soundEngine) soundEngine.slideIn();
+            onOpenSidebar();
+          }}
           className="text-[#666666] hover:text-[#EAEAEA] text-[11px] font-mono px-2.5 py-1 rounded bg-[#0F0F0F] border border-[#222222] transition-colors flex items-center gap-1.5 cursor-pointer"
           title="Switch Role"
         >
