@@ -6,7 +6,13 @@ import { useState, useRef, useEffect } from "react";
 import * as chrono from "chrono-node";
 import { soundEngine } from "@/lib/sounds";
 
-export function AddTask() {
+interface AddTaskProps {
+  role?: string;
+  nextStepIndex?: number;
+  placeholder?: string;
+}
+
+export function AddTask({ role = "general", nextStepIndex, placeholder }: AddTaskProps = {}) {
   const add = useMutation(api.tasks.add);
   const [title, setTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +94,7 @@ export function AddTask() {
       })
       .join(" ");
 
-    await add({ title: finalTitle, deadline });
+    await add({ title: finalTitle, deadline, role, stepIndex: nextStepIndex });
     
     // Ensure input stays focused
     inputRef.current?.focus();
@@ -102,7 +108,7 @@ export function AddTask() {
           ref={inputRef}
           type="text"
           autoFocus={true}
-          placeholder="Type task... (e.g. clean room tomorrow 5pm)"
+          placeholder={placeholder ?? "Type task... (e.g. clean room tomorrow 5pm)"}
           className="bg-transparent text-[#EAEAEA] placeholder-[#4A4A4A] py-1.5 w-full outline-none text-sm transition-all"
           value={title}
           onChange={(e) => {

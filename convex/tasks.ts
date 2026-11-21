@@ -16,6 +16,8 @@ export const add = mutation({
   args: {
     title: v.string(),
     deadline: v.union(v.number(), v.null()),
+    role: v.optional(v.string()),
+    stepIndex: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const createdAt = Date.now();
@@ -25,6 +27,8 @@ export const add = mutation({
       deadline: args.deadline,
       createdAt,
       deadlineLastModified: createdAt,
+      role: args.role ?? "general",
+      stepIndex: args.stepIndex,
     });
 
     if (args.deadline) {

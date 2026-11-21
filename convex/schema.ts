@@ -8,6 +8,8 @@ export default defineSchema({
     deadline: v.union(v.number(), v.null()),
     createdAt: v.number(),
     deadlineLastModified: v.optional(v.number()),
+    role: v.optional(v.string()), // "general" | "agrowvision" | "itsprelude" | "curemind" | "enterprise"
+    stepIndex: v.optional(v.number()),
   }),
   push_subscriptions: defineTable({
     endpoint: v.string(),
