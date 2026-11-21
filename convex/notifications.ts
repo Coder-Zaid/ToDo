@@ -56,10 +56,11 @@ export const sendPushAction = internalAction({
         })
       );
       return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { statusCode?: number };
       console.error("Push delivery error for endpoint:", args.endpoint, err);
       // Clean up dead subscriptions
-      if (err.statusCode === 404 || err.statusCode === 410) {
+      if (error && (error.statusCode === 404 || error.statusCode === 410)) {
         await ctx.runMutation(internal.subscriptions.removeById, {
           id: args.subscriptionId,
         });
@@ -96,9 +97,10 @@ export const sendTestNotification = action({
         })
       );
       return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string };
       console.error("Test push failed:", err);
-      return { success: false, error: err.message || String(err) };
+      return { success: false, error: error?.message || String(err) };
     }
   },
 });
