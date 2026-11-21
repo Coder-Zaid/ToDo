@@ -147,6 +147,40 @@ export function NotificationToggle() {
       if (res.success) {
         setStatusMessage("Test notification sent! Check your device lock screen.");
       } else {
+        // Auto-heal if key was rotated or unexpected response code returned
+        if (
+          res.error &&
+          (res.error.includes("response code") ||
+            res.error.includes("401") ||
+            res.error.includes("400") ||
+            res.error.includes("403"))
+        ) {
+          setStatusMessage("Syncing device to new notification keys...");
+          const newSub = await subscribeDeviceToPush(vapidPublicKey);
+          if (newSub) {
+            const newKey = newSub.getKey ? newSub.getKey("p256dh") : null;
+            const newAuth = newSub.getKey ? newSub.getKey("auth") : null;
+            const newP256dh = newKey
+              ? btoa(String.fromCharCode(...new Uint8Array(newKey)))
+              : "";
+            const newAuthStr = newAuth
+              ? btoa(String.fromCharCode(...new Uint8Array(newAuth)))
+              : "";
+            await saveSubscription({
+              endpoint: newSub.endpoint,
+              keys: { p256dh: newP256dh, auth: newAuthStr },
+            });
+            const retryRes = await sendTestNotification({
+              endpoint: newSub.endpoint,
+              p256dh: newP256dh,
+              auth: newAuthStr,
+            });
+            if (retryRes.success) {
+              setStatusMessage("Keys synced! Test notification sent to lock screen.");
+              return;
+            }
+          }
+        }
         setStatusMessage(`Error: ${res.error || "Failed to send"}`);
       }
     } catch (err: unknown) {

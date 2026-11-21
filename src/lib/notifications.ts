@@ -63,7 +63,17 @@ export async function subscribeDeviceToPush(vapidPublicKey: string): Promise<Pus
 
   await navigator.serviceWorker.ready;
 
-  // 3. Subscribe
+  // Clear any existing subscription to prevent VAPID key mismatch ("received unexpected response code")
+  try {
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      await existing.unsubscribe();
+    }
+  } catch (e) {
+    console.warn('Could not clear old subscription:', e);
+  }
+
+  // 3. Subscribe with the new key
   const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
