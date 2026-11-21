@@ -21,20 +21,24 @@ export function RoleSidebar({
   onClose,
   tasks,
 }: RoleSidebarProps) {
-  const currentIndex = ROLES.findIndex((r) => r.id === activeRole);
+  // Always-fresh ref for activeRole to eliminate any stale closure issues
+  const activeRoleRef = useRef(activeRole);
+  activeRoleRef.current = activeRole;
 
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
   const lastSwitchTime = useRef<number>(0);
 
+  const currentIndex = ROLES.findIndex((r) => r.id === activeRole);
+
   const switchToDown = () => {
-    const nextIndex = (currentIndex + 1) % ROLES.length;
+    const idx = ROLES.findIndex((r) => r.id === activeRoleRef.current);
+    const nextIndex = (idx + 1) % ROLES.length;
     if (soundEngine) soundEngine.magneticSnap();
     onSelectRole(ROLES[nextIndex].id);
   };
 
   const switchToUp = () => {
-    const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
+    const idx = ROLES.findIndex((r) => r.id === activeRoleRef.current);
+    const prevIndex = (idx - 1 + ROLES.length) % ROLES.length;
     if (soundEngine) soundEngine.magneticSnap();
     onSelectRole(ROLES[prevIndex].id);
   };
@@ -58,7 +62,123 @@ export function RoleSidebar({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, activeRole]);
+  }, [isOpen]);
+
+  // Global mouse wheel listener across the ENTIRE window when sidebar is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let wheelAccumulator = 0;
+
+    const handleGlobalWheel = (e: WheelEvent) => {
+      // Intercept wheel scroll anywhere on screen while sidebar is open
+      e.preventDefault();
+
+      wheelAccumulator += e.deltaY;
+      const now = Date.now();
+
+      // Threshold of 16px wheel delta + 140ms throttle
+      if (Math.abs(wheelAccumulator) >= 16 && now - lastSwitchTime.current > 140) {
+        if (wheelAccumulator > 0) {
+          switchToDown();
+        } else {
+          switchToUp();
+        }
+        lastSwitchTime.current = now;
+        wheelAccumulator = 0;
+      }
+    };
+
+    window.addEventListener("wheel", handleGlobalWheel, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", handleGlobalWheel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Global Touch swipe & drag listener across the ENTIRE window when sidebar is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let startX = 0;
+    let startY = 0;
+    let isTracking = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isTracking = true;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isTracking || e.touches.length !== 1) return;
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+
+      const deltaY = currentY - startY;
+      const deltaX = currentX - startX;
+
+      // Prevent native page scroll while sidebar is open
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (e.cancelable) e.preventDefault();
+      }
+
+      const now = Date.now();
+      if (now - lastSwitchTime.current < 140) return;
+
+      // Live touch drag: every 22px of vertical movement switches profile!
+      if (Math.abs(deltaY) >= 22 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (deltaY > 0) {
+          switchToDown();
+        } else {
+          switchToUp();
+        }
+        lastSwitchTime.current = now;
+        startY = currentY;
+        startX = currentX;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isTracking) return;
+      isTracking = false;
+
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+
+      // Swipe left -> Close sidebar
+      if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
+        if (soundEngine) soundEngine.slideOut();
+        onClose();
+        return;
+      }
+
+      // Quick flick fallback
+      if (Math.abs(deltaY) >= 15 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (deltaY > 0) {
+          switchToDown();
+        } else {
+          switchToUp();
+        }
+      }
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleSelect = (role: RoleDefinition) => {
     if (soundEngine) soundEngine.magneticSnap();
@@ -77,78 +197,8 @@ export function RoleSidebar({
     return tasks.some((t: any) => t.role === roleId && !t.completed);
   };
 
-  // Touch handlers attached directly to container & dock with non-passive touchAction: none
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-
-    const deltaY = currentY - touchStartY.current;
-    const deltaX = currentX - touchStartX.current;
-    const now = Date.now();
-
-    // Prevent too-rapid re-triggering during drag
-    if (now - lastSwitchTime.current < 110) return;
-
-    // Real-time drag switching: 24px vertical movement steps down or up!
-    if (Math.abs(deltaY) >= 24 && Math.abs(deltaY) > Math.abs(deltaX)) {
-      if (deltaY > 0) {
-        switchToDown();
-      } else {
-        switchToUp();
-      }
-      lastSwitchTime.current = now;
-      // Reset startY so continuous drag keeps stepping cleanly
-      touchStartY.current = currentY;
-      touchStartX.current = currentX;
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-
-    const deltaX = endX - touchStartX.current;
-    const deltaY = endY - touchStartY.current;
-
-    // Horizontal swipe left -> Close sidebar
-    if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (soundEngine) soundEngine.slideOut();
-      onClose();
-      return;
-    }
-
-    // Quick flick fallback if touchmove didn't trigger
-    if (Math.abs(deltaY) >= 18 && Math.abs(deltaY) > Math.abs(deltaX)) {
-      if (deltaY > 0) {
-        switchToDown();
-      } else {
-        switchToUp();
-      }
-    }
-  };
-
-  // Mouse wheel navigation on desktop
-  const handleWheel = (e: React.WheelEvent) => {
-    e.stopPropagation();
-    if (Math.abs(e.deltaY) > 18) {
-      if (e.deltaY > 0) {
-        switchToDown();
-      } else {
-        switchToUp();
-      }
-    }
-  };
-
   return (
     <div
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       style={{ touchAction: "none" }}
       className={`fixed inset-0 z-50 transition-opacity duration-150 ${
         isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -165,7 +215,6 @@ export function RoleSidebar({
 
       {/* Slide-out Square Monograms Dock with Magnetic Animation */}
       <aside
-        onWheel={handleWheel}
         className={`absolute top-0 left-0 bottom-0 w-[88px] sm:w-[92px] bg-[#070707] border-r border-[#1C1C1C] flex flex-col items-center justify-between pt-10 pb-8 z-50 transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-[15px_0_40px_rgba(0,0,0,0.95)] select-none ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -181,10 +230,10 @@ export function RoleSidebar({
           {/* Quick Up Arrow control */}
           <button
             onClick={switchToUp}
-            className="text-[#444444] hover:text-[#EAEAEA] p-0.5 transition-colors"
-            title="Previous Role (Swipe Up)"
+            className="text-[#444444] hover:text-[#EAEAEA] p-0.5 transition-colors cursor-pointer"
+            title="Previous Role (Scroll/Swipe Up)"
           >
-            <ChevronUp size={14} />
+            <ChevronUp size={16} />
           </button>
 
           {/* Square Monogram Letter Buttons Container */}
@@ -251,18 +300,18 @@ export function RoleSidebar({
             {/* Quick Down Arrow control */}
             <button
               onClick={switchToDown}
-              className="text-[#444444] hover:text-[#EAEAEA] p-0.5 transition-colors"
-              title="Next Role (Swipe Down)"
+              className="text-[#444444] hover:text-[#EAEAEA] p-0.5 transition-colors cursor-pointer"
+              title="Next Role (Scroll/Swipe Down)"
             >
-              <ChevronDown size={14} />
+              <ChevronDown size={16} />
             </button>
           </div>
         </div>
 
-        {/* Bottom swipe/hide button */}
+        {/* Bottom vertical gesture indicator & hide button */}
         <div className="flex flex-col items-center gap-1.5 text-[#444444]">
           <span className="text-[7px] font-mono uppercase tracking-widest text-[#555555]">
-            ↕ SWIPE
+            ↕ SCROLL
           </span>
           <button
             onClick={() => {
