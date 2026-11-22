@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (keep .env.local private, allow .env.production for deployment)
 .env*.local
 .env.local
+*whatsapp-token.json
+scripts/*.json
+scripts/*.txt
 
 # vercel
 .vercel
