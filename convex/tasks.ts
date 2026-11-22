@@ -124,12 +124,7 @@ export const update = mutation({
 });
 
 export const DEFAULT_ROLE_ROADMAPS: Record<string, string[]> = {
-  agrowvision: [
-    "Run mechanical dewatering trials to benchmark dry fiber yield per 100kg wet hyacinth",
-    "Test semi-chemical digest vs enzymatic maceration for tensile strength & burst factor",
-    "Produce trial batch of thermoformed biodegradable trays & measure water absorption (Cobb test)",
-    "Compile Technical Data Sheet (TDS) & unit economics model per kg dry pulp",
-  ],
+  agrowvision: [],
   itsprelude: [
     "Benchmark CatVTON & IDM-VTON on RunPod with sample person & saree fabric textures",
     "Implement SCHP / DensePose garment segmentation to isolate torso, limbs & drape contours",
@@ -142,11 +137,28 @@ export const DEFAULT_ROLE_ROADMAPS: Record<string, string[]> = {
     "Implement Reorder Point (ROP) & dynamic safety stock calculation to prevent stockouts",
     "Design executive kitchen dashboard alerts for top rush items and suggested restock orders",
   ],
-  curemind: [
-    "Attend Neuvera stakeholder meeting & document signal modality (EEG/fMRI) & architecture scope",
-    "Define Spiking Neural Network (LIF SNN) or sequence model pipeline based on meeting specs",
-  ],
+  curemind: [],
 };
+
+export const clearRoleTasks = mutation({
+  args: {
+    roles: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let deletedCount = 0;
+    for (const r of args.roles) {
+      const tasks = await ctx.db
+        .query("tasks")
+        .filter((q) => q.eq(q.field("role"), r))
+        .collect();
+      for (const t of tasks) {
+        await ctx.db.delete(t._id);
+        deletedCount++;
+      }
+    }
+    return { success: true, deletedCount };
+  },
+});
 
 export const seedRoleMilestones = mutation({
   args: {
