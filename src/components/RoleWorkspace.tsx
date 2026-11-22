@@ -27,7 +27,10 @@ interface RoleWorkspaceProps {
 export function RoleWorkspace({ role, tasks, onOpenSidebar }: RoleWorkspaceProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toggle = useMutation(api.tasks.toggle as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const seedMilestones = useMutation(api.tasks.seedRoleMilestones as any);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   // Filter tasks belonging to this role
   const roleTasks = tasks
@@ -125,10 +128,31 @@ export function RoleWorkspace({ role, tasks, onOpenSidebar }: RoleWorkspaceProps
             </div>
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-dashed border-[#222222] text-center text-xs text-[#555555] font-mono">
-            {roleTasks.length === 0
-              ? "No milestones planned yet for this role."
-              : "All planned steps completed! Add next step below."}
+          <div className="p-4 rounded-xl border border-dashed border-[#222222] text-center text-xs text-[#555555] font-mono flex flex-col items-center gap-3">
+            {roleTasks.length === 0 ? (
+              <>
+                <p className="text-[#777777]">No milestones planned yet for this role.</p>
+                <button
+                  type="button"
+                  disabled={isSeeding}
+                  onClick={async () => {
+                    setIsSeeding(true);
+                    if (soundEngine) soundEngine.magneticSnap();
+                    try {
+                      await seedMilestones({ role: role.id });
+                    } finally {
+                      setIsSeeding(false);
+                    }
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 active:scale-95 text-[#EAEAEA] border border-white/20 text-[11px] font-mono transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  <span>{isSeeding ? "Loading Roadmap..." : "Load Curated Roadmap"}</span>
+                </button>
+              </>
+            ) : (
+              "All planned steps completed! Add next step below."
+            )}
           </div>
         )}
       </div>

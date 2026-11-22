@@ -29,7 +29,7 @@ export const ROLES: RoleDefinition[] = [
     code: "P",
     badge: "LEAD",
     name: "ITSPRELUDE",
-    tagline: "Distributed Systems & WebRTC Monoliths",
+    tagline: "LuxeDrape AI VTON & Distributed Systems",
     roleTitle: "Tech Lead & Systems Head",
   },
   {
@@ -44,8 +44,8 @@ export const ROLES: RoleDefinition[] = [
     id: "enterprise",
     code: "E",
     badge: "SCALE",
-    name: "Enterprise Solutions",
-    tagline: "ScaleTech Telemetry & Industrial ERP",
+    name: "EzyBite & Enterprise",
+    tagline: "Module 7 AI Forecasting & ScaleTech ERP",
     roleTitle: "Lead Systems Architect",
   },
 ];
