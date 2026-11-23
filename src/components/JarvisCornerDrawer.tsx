@@ -80,7 +80,7 @@ export function JarvisCornerDrawer({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       className={`drawer-right fixed top-0 right-0 bottom-0 w-full max-w-md bg-[#090909] border-l border-[#1F1F1F] z-50 p-6 flex flex-col justify-between shadow-2xl ${
-        isOpen ? "open" : ""
+        isOpen ? "open" : "pointer-events-none"
       }`}
     >
       <div className="flex flex-col gap-4">
