@@ -44,9 +44,10 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
     }
   }, []);
 
-  // Auto-scan on modal open
+  // Auto-scan on modal open and reset any local session dismissals
   useEffect(() => {
     if (isOpen) {
+      setDismissedIds([]);
       triggerScan();
     }
   }, [isOpen, triggerScan]);
