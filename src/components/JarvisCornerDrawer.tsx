@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useRef } from "react";
 import { Zap, X, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -59,9 +60,25 @@ export function JarvisCornerDrawer({
   const actionableTasks = tasks.filter(
     (t) => !t.completed && isTaskAIActionable(t)
   );
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    if (deltaX > 40) {
+      onClose();
+    }
+    touchStartX.current = null;
+  };
 
   return (
     <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className={`drawer-right fixed top-0 right-0 bottom-0 w-full max-w-md bg-[#090909] border-l border-[#1F1F1F] z-50 p-6 flex flex-col justify-between shadow-2xl ${
         isOpen ? "open" : ""
       }`}

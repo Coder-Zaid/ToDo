@@ -162,9 +162,9 @@ export default function Home() {
     const deltaX = touchEndX - touchStartX.current;
     const deltaY = touchEndY - touchStartY.current;
 
-    // Corner drawer open: swipe right closes it
+    // Corner drawer open: swipe left-to-right closes it
     if (isCornerOpen) {
-      if (deltaX > 45) {
+      if (deltaX > 35) {
         setIsCornerOpen(false);
       }
       touchStartX.current = null;
@@ -173,7 +173,7 @@ export default function Home() {
     }
 
     if (isSidebarOpen) {
-      // Swipe left -> close sidebar
+      // Swipe right-to-left -> close sidebar
       if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
         if (soundEngine) soundEngine.slideOut();
         setIsSidebarOpen(false);
@@ -208,15 +208,15 @@ export default function Home() {
       }
     } else {
       // Main screen closed gestures:
-      // Swipe RIGHT (deltaX > 50) -> opens hidden Jarvis Corner!
-      if (deltaX > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (soundEngine) soundEngine.slideIn();
-        setIsCornerOpen(true);
-      }
-      // Swipe LEFT (deltaX < -50) -> opens role dock
-      else if (deltaX < -50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Swipe LEFT TO RIGHT (deltaX > 45) -> opens sidebar!
+      if (deltaX > 45 && Math.abs(deltaX) > Math.abs(deltaY)) {
         if (soundEngine) soundEngine.slideIn();
         setIsSidebarOpen(true);
+      }
+      // Swipe RIGHT TO LEFT (deltaX < -45) -> opens hidden Jarvis Corner!
+      else if (deltaX < -45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (soundEngine) soundEngine.slideIn();
+        setIsCornerOpen(true);
       }
       // Swipe DOWN/UP on main view -> switches profile sequentially
       else if (deltaY > 35 && Math.abs(deltaY) > Math.abs(deltaX)) {
