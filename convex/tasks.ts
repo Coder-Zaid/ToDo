@@ -315,41 +315,55 @@ export const acceptInboxMessage = mutation({
   },
 });
 
-export const declineInboxMessage = mutation({
+export const pushLiveWhatsAppMessage = mutation({
   args: {
-    messageId: v.id("inbox_messages"),
+    sender: v.string(),
+    text: v.string(),
+    extractedTask: v.string(),
+    suggestedRole: v.string(),
+    timestamp: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, { status: "declined" });
-    return { success: true };
+    const id = await ctx.db.insert("inbox_messages", {
+      sender: args.sender,
+      text: args.text,
+      timestamp: args.timestamp ?? Date.now(),
+      extractedTask: args.extractedTask,
+      suggestedRole: args.suggestedRole.toLowerCase(),
+      status: "pending",
+    });
+    return id;
   },
 });
 
 export const seedDefaultInboxAndJobs = mutation({
   args: {},
   handler: async (ctx) => {
-    const existingMsgs = await ctx.db.query("inbox_messages").collect();
     const now = Date.now();
-
-    if (existingMsgs.length === 0) {
-      await ctx.db.insert("inbox_messages", {
-        sender: "Neuvera Core Team (Dr. Rao)",
-        text: "Zaid bhai, hospital legal counsel sent the revised consent draft. We need to finalize the Neuvera entity type (LLP/Pvt Ltd) and DPIIT papers before Friday.",
-        timestamp: now - 3600000,
-        extractedTask: "Finalize Neuvera entity type (LLP/Pvt Ltd) & DPIIT paperwork",
-        suggestedRole: "neuvera",
-        status: "pending",
-      });
-
-      await ctx.db.insert("inbox_messages", {
-        sender: "AgrowVision Field Ops",
-        text: "Satellite imagery for Sector 4 drone survey was uploaded. Need automated OpenCV edge classification script to flag diseased leaf zones.",
-        timestamp: now - 7200000,
-        extractedTask: "Train & deploy OpenCV crop pest classification pipeline",
-        suggestedRole: "agrowvision",
-        status: "pending",
-      });
+    // Clear out any old mock/fake messages
+    const existingMsgs = await ctx.db.query("inbox_messages").collect();
+    for (const msg of existingMsgs) {
+      await ctx.db.delete(msg._id);
     }
+
+    // Insert REAL live WhatsApp messages extracted from chats
+    await ctx.db.insert("inbox_messages", {
+      sender: "Geeta Tripathi Ma'am (Neuvera)",
+      text: "Do make a Technical Roadmap that what all you plan to do in next 3 years",
+      timestamp: 1795416360000,
+      extractedTask: "Make 3-year Technical Roadmap for Neuvera",
+      suggestedRole: "neuvera",
+      status: "pending",
+    });
+
+    await ctx.db.insert("inbox_messages", {
+      sender: "Emmanuel (Itsprelude GC)",
+      text: "https://hack2skill.com/event/build2036/registration?team_name=Itsprelue join",
+      timestamp: 1795383600000,
+      extractedTask: "Join Itsprelude team on Build2036 hackathon",
+      suggestedRole: "itsprelude",
+      status: "pending",
+    });
 
     const existingJobs = await ctx.db.query("agent_jobs").collect();
     if (existingJobs.length === 0) {
