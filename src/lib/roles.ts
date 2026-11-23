@@ -49,3 +49,71 @@ export const ROLES: RoleDefinition[] = [
     roleTitle: "Lead Systems Architect",
   },
 ];
+
+export function getRoleClosestDeadline(roleId: string, tasks?: any[]): number | null {
+  if (!tasks || tasks.length === 0) return null;
+
+  const roleTasks = tasks.filter((t) => {
+    if (t.completed) return false;
+    if (roleId === "general") {
+      return !t.role || t.role === "general";
+    }
+    if (roleId === "neuvera") {
+      return t.role === "neuvera" || t.role === "curemind";
+    }
+    return t.role === roleId;
+  });
+
+  const deadlines = roleTasks
+    .map((t) => t.deadline)
+    .filter((d): d is number => typeof d === "number" && d > 0);
+
+  if (deadlines.length === 0) return null;
+  return Math.min(...deadlines);
+}
+
+export function sortRolesByDeadline(roles: RoleDefinition[], tasks?: any[]): RoleDefinition[] {
+  if (!tasks || tasks.length === 0) return [...roles];
+
+  return [...roles].sort((a, b) => {
+    const deadA = getRoleClosestDeadline(a.id, tasks);
+    const deadB = getRoleClosestDeadline(b.id, tasks);
+
+    // 1. Roles with deadlines sorted by earliest first
+    if (deadA !== null && deadB !== null) {
+      if (deadA !== deadB) {
+        return deadA - deadB;
+      }
+    }
+    // 2. Role with a deadline takes priority over role without a deadline
+    if (deadA !== null && deadB === null) return -1;
+    if (deadA === null && deadB !== null) return 1;
+
+    // 3. If neither has a deadline, rank roles with uncompleted tasks above idle ones
+    const countA = tasks.filter(
+      (t) =>
+        !t.completed &&
+        (a.id === "general"
+          ? !t.role || t.role === "general"
+          : a.id === "neuvera"
+          ? t.role === "neuvera" || t.role === "curemind"
+          : t.role === a.id)
+    ).length;
+
+    const countB = tasks.filter(
+      (t) =>
+        !t.completed &&
+        (b.id === "general"
+          ? !t.role || t.role === "general"
+          : b.id === "neuvera"
+          ? t.role === "neuvera" || t.role === "curemind"
+          : t.role === b.id)
+    ).length;
+
+    if (countA > 0 && countB === 0) return -1;
+    if (countA === 0 && countB > 0) return 1;
+
+    // 4. Default static order as fallback tie-breaker
+    return roles.indexOf(a) - roles.indexOf(b);
+  });
+}

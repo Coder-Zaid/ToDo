@@ -6,10 +6,10 @@ import { format } from "date-fns";
 import { TaskItem } from "@/components/TaskItem";
 import { AddTask } from "@/components/AddTask";
 import { NotificationToggle } from "@/components/NotificationToggle";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { soundEngine } from "@/lib/sounds";
 import { Volume2, VolumeX, Check } from "lucide-react";
-import { ROLES } from "@/lib/roles";
+import { ROLES, sortRolesByDeadline } from "@/lib/roles";
 import { RoleSidebar } from "@/components/RoleSidebar";
 import { RoleWorkspace } from "@/components/RoleWorkspace";
 
@@ -25,7 +25,12 @@ export default function Home() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
-  const activeRole = ROLES.find((r) => r.id === currentRoleId) ?? ROLES[0];
+  // Dynamically sort roles by closest uncompleted deadline
+  const sortedRoles = useMemo(() => {
+    return sortRolesByDeadline(ROLES, tasks as any);
+  }, [tasks]);
+
+  const activeRole = sortedRoles.find((r) => r.id === currentRoleId) ?? sortedRoles[0];
 
   // Filter tasks for the General view
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,13 +110,13 @@ export default function Home() {
         if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
-        const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
-        const nextIndex = (currentIndex + 1) % ROLES.length;
+        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
+        const nextIndex = (currentIndex + 1) % sortedRoles.length;
         if (soundEngine) {
           soundEngine.magneticSnap();
           soundEngine.slideOut();
         }
-        setCurrentRoleId(ROLES[nextIndex].id);
+        setCurrentRoleId(sortedRoles[nextIndex].id);
         setIsSidebarOpen(false);
       }
       // Swipe UP -> switch to previous profile and self-hide immediately!
@@ -119,13 +124,13 @@ export default function Home() {
         if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
-        const currentIndex = ROLES.findIndex((r) => r.id === currentRoleId);
-        const prevIndex = (currentIndex - 1 + ROLES.length) % ROLES.length;
+        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
+        const prevIndex = (currentIndex - 1 + sortedRoles.length) % sortedRoles.length;
         if (soundEngine) {
           soundEngine.magneticSnap();
           soundEngine.slideOut();
         }
-        setCurrentRoleId(ROLES[prevIndex].id);
+        setCurrentRoleId(sortedRoles[prevIndex].id);
         setIsSidebarOpen(false);
       }
     } else {

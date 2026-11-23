@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { ROLES, RoleDefinition } from "@/lib/roles";
+import React, { useEffect, useRef, useMemo } from "react";
+import { ROLES, RoleDefinition, sortRolesByDeadline, getRoleClosestDeadline } from "@/lib/roles";
 import { soundEngine } from "@/lib/sounds";
-import { Check, ChevronLeft, ChevronUp, ChevronDown } from "lucide-react";
+import { Check, ChevronLeft, ChevronUp, ChevronDown, Clock } from "lucide-react";
 
 interface RoleSidebarProps {
   isOpen: boolean;
@@ -27,7 +27,12 @@ export function RoleSidebar({
 
   const isSwitchingRef = useRef(false);
 
-  const currentIndex = ROLES.findIndex((r) => r.id === activeRole);
+  // Dynamically sort roles by closest deadline
+  const sortedRoles = useMemo(() => {
+    return sortRolesByDeadline(ROLES, tasks);
+  }, [tasks]);
+
+  const currentIndex = sortedRoles.findIndex((r) => r.id === activeRole);
 
   // Switch to next profile and IMMEDIATELY auto-hide the sidebar (1 scroll = 1 switch & close)
   const switchToDownAndClose = () => {
@@ -39,15 +44,15 @@ export function RoleSidebar({
       document.activeElement.blur();
     }
 
-    const idx = ROLES.findIndex((r) => r.id === activeRoleRef.current);
-    const nextIndex = (idx + 1) % ROLES.length;
+    const idx = sortedRoles.findIndex((r) => r.id === activeRoleRef.current);
+    const nextIndex = (idx + 1) % sortedRoles.length;
 
     if (soundEngine) {
       soundEngine.magneticSnap();
       soundEngine.slideOut();
     }
 
-    onSelectRole(ROLES[nextIndex].id);
+    onSelectRole(sortedRoles[nextIndex].id);
     onClose(); // Self-hide immediately!
 
     setTimeout(() => {
@@ -64,15 +69,15 @@ export function RoleSidebar({
       document.activeElement.blur();
     }
 
-    const idx = ROLES.findIndex((r) => r.id === activeRoleRef.current);
-    const prevIndex = (idx - 1 + ROLES.length) % ROLES.length;
+    const idx = sortedRoles.findIndex((r) => r.id === activeRoleRef.current);
+    const prevIndex = (idx - 1 + sortedRoles.length) % sortedRoles.length;
 
     if (soundEngine) {
       soundEngine.magneticSnap();
       soundEngine.slideOut();
     }
 
-    onSelectRole(ROLES[prevIndex].id);
+    onSelectRole(sortedRoles[prevIndex].id);
     onClose(); // Self-hide immediately!
 
     setTimeout(() => {
@@ -279,9 +284,19 @@ export function RoleSidebar({
               }}
             />
 
-            {ROLES.map((role) => {
+            {sortedRoles.map((role) => {
               const isActive = activeRole === role.id;
               const hasActiveTask = checkRoleActive(role.id);
+              const closestDeadline = getRoleClosestDeadline(role.id, tasks);
+              const hasDeadline = closestDeadline !== null;
+
+              const deadlineLabel = closestDeadline
+                ? closestDeadline - Date.now() <= 0
+                  ? "Overdue"
+                  : Math.floor((closestDeadline - Date.now()) / (1000 * 60 * 60 * 24)) > 0
+                  ? `${Math.floor((closestDeadline - Date.now()) / (1000 * 60 * 60 * 24))}d left`
+                  : `${Math.floor((closestDeadline - Date.now()) / (1000 * 60 * 60))}h left`
+                : null;
 
               return (
                 <button
@@ -289,7 +304,11 @@ export function RoleSidebar({
                   data-role-id={role.id}
                   onClick={() => handleSelect(role)}
                   title={`${role.name} (${role.roleTitle}) - ${
-                    hasActiveTask ? "Step 1 In Progress" : "Idle"
+                    deadlineLabel
+                      ? `Due in ${deadlineLabel}`
+                      : hasActiveTask
+                      ? "Step 1 In Progress"
+                      : "Idle"
                   }`}
                   className={`w-[52px] h-[52px] rounded-2xl flex flex-col items-center justify-center transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative group cursor-pointer ${
                     isActive
@@ -314,13 +333,17 @@ export function RoleSidebar({
                     {role.badge}
                   </span>
 
-                  {/* Stealth Status Pip */}
+                  {/* Dynamic Deadline Urgency Dot or Status Pip */}
                   <div
                     className={`w-[3px] h-[3px] rounded-full mt-1 transition-colors ${
-                      hasActiveTask
+                      hasDeadline
                         ? isActive
                           ? "bg-black"
-                          : "bg-white shadow-[0_0_5px_rgba(255,255,255,0.9)]"
+                          : "bg-white shadow-[0_0_6px_rgba(255,255,255,1)]"
+                        : hasActiveTask
+                        ? isActive
+                          ? "bg-black"
+                          : "bg-[#9A9A9A] shadow-[0_0_4px_rgba(255,255,255,0.5)]"
                         : isActive
                         ? "bg-black/25"
                         : "bg-[#252525]"
