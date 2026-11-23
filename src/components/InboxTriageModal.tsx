@@ -165,7 +165,12 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
           </div>
         </div>
 
-        {currentMsg ? (
+        {messages === undefined ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3 font-mono text-xs text-[#888888]">
+            <Loader2 size={20} className="animate-spin text-white" />
+            <span>Scanning inbox messages...</span>
+          </div>
+        ) : currentMsg ? (
           <>
             {/* Scanned Message Card */}
             <div className="p-3.5 rounded-xl bg-[#111111] border border-[#1E1E1E] flex flex-col gap-2">
