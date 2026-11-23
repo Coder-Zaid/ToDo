@@ -95,14 +95,29 @@ export const update = mutation({
     id: v.id("tasks"),
     title: v.string(),
     deadline: v.optional(v.union(v.number(), v.null())),
+    role: v.optional(v.string()),
+    stepIndex: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.id);
     if (!task) return;
 
-    const patch: { title: string; deadline?: number | null; deadlineLastModified?: number } = {
+    const patch: {
+      title: string;
+      deadline?: number | null;
+      deadlineLastModified?: number;
+      role?: string;
+      stepIndex?: number;
+    } = {
       title: args.title,
     };
+
+    if (args.role !== undefined) {
+      patch.role = args.role;
+    }
+    if (args.stepIndex !== undefined) {
+      patch.stepIndex = args.stepIndex;
+    }
 
     const newDeadline = args.deadline !== undefined ? args.deadline : task.deadline;
     if (args.deadline !== undefined && args.deadline !== task.deadline) {
@@ -136,6 +151,13 @@ export const DEFAULT_ROLE_ROADMAPS: Record<string, string[]> = {
     "Build rolling 7-day & 28-day sales velocity forecasting model with day-of-week seasonality",
     "Implement Reorder Point (ROP) & dynamic safety stock calculation to prevent stockouts",
     "Design executive kitchen dashboard alerts for top rush items and suggested restock orders",
+  ],
+  neuvera: [
+    "Finalize Neuvera entity type (LLP/Pvt Ltd) & DPIIT paperwork",
+    "Coordinate with Geeta Ma'am on hospital LOI outreach (AIIMS, Niloufer, Apollo)",
+    "Build & test Reel Intercept model with mascot nudges",
+    "Neuvera Core Team Meeting & Progress Review",
+    "Pitch Neuvera to Dr. Rajesh Kumar (MeitY Director) at Future Tech Summit",
   ],
   curemind: [],
 };

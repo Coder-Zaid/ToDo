@@ -34,7 +34,7 @@ export function RoleWorkspace({ role, tasks, onOpenSidebar }: RoleWorkspaceProps
 
   // Filter tasks belonging to this role
   const roleTasks = tasks
-    .filter((t) => t.role === role.id)
+    .filter((t) => t.role === role.id || (role.id === "neuvera" && t.role === "curemind"))
     .sort((a, b) => {
       if (a.stepIndex !== undefined && b.stepIndex !== undefined) {
         return a.stepIndex - b.stepIndex;

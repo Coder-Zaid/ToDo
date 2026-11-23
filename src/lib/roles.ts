@@ -33,12 +33,12 @@ export const ROLES: RoleDefinition[] = [
     roleTitle: "Tech Lead & Systems Head",
   },
   {
-    id: "curemind",
-    code: "C",
-    badge: "NEURO",
-    name: "CureMind & Neuvera",
-    tagline: "LIF Spiking Neural Networks & Digital Health",
-    roleTitle: "AI Neuroscience Researcher",
+    id: "neuvera",
+    code: "N",
+    badge: "NEUVERA",
+    name: "Neuvera",
+    tagline: "Neurotechnology & Digital Attention Platform",
+    roleTitle: "Lead Neurotech Developer",
   },
   {
     id: "enterprise",
