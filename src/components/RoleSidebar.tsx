@@ -163,17 +163,6 @@ export function RoleSidebar({
       if (Math.abs(deltaY) > Math.abs(deltaX)) {
         if (e.cancelable) e.preventDefault();
       }
-
-      // Live touch drag: swipe down 20px -> switch next & self-hide!
-      if (deltaY >= 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        isTracking = false;
-        switchToDownAndClose();
-      }
-      // Swipe up 20px -> switch prev & self-hide!
-      else if (deltaY <= -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        isTracking = false;
-        switchToUpAndClose();
-      }
     };
 
     const handleGlobalTouchEnd = (e: TouchEvent) => {
@@ -193,10 +182,12 @@ export function RoleSidebar({
         return;
       }
 
-      // Quick flick fallback
-      if (deltaY >= 14 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      // Intentional swipe DOWN -> switch next & close
+      if (deltaY >= 35 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2) {
         switchToDownAndClose();
-      } else if (deltaY <= -14 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      }
+      // Intentional swipe UP -> switch prev & close
+      else if (deltaY <= -35 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2) {
         switchToUpAndClose();
       }
     };
@@ -301,6 +292,7 @@ export function RoleSidebar({
               return (
                 <button
                   key={role.id}
+                  type="button"
                   data-role-id={role.id}
                   onClick={() => handleSelect(role)}
                   title={`${role.name} (${role.roleTitle}) - ${
@@ -310,7 +302,7 @@ export function RoleSidebar({
                       ? "Step 1 In Progress"
                       : "Idle"
                   }`}
-                  className={`w-[52px] h-[52px] rounded-2xl flex flex-col items-center justify-center transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative group cursor-pointer ${
+                  className={`w-[52px] h-[52px] rounded-2xl flex flex-col items-center justify-center transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative group cursor-pointer touch-manipulation select-none ${
                     isActive
                       ? "bg-white border border-white text-black shadow-[0_0_22px_rgba(255,255,255,0.22)] scale-105"
                       : "bg-[#111111] border border-[#222222] text-[#7A7A7A] hover:text-[#EAEAEA] hover:border-[#383838] active:scale-95"

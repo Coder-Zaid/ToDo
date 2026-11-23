@@ -178,34 +178,7 @@ export default function Home() {
         if (soundEngine) soundEngine.slideOut();
         setIsSidebarOpen(false);
       }
-      // Swipe DOWN -> switch to next profile
-      else if (deltaY > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
-        const nextIndex = (currentIndex + 1) % sortedRoles.length;
-        if (soundEngine) {
-          soundEngine.magneticSnap();
-          soundEngine.slideOut();
-        }
-        setCurrentRoleId(sortedRoles[nextIndex].id);
-        setIsSidebarOpen(false);
-      }
-      // Swipe UP -> switch to previous profile
-      else if (deltaY < -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
-        const prevIndex = (currentIndex - 1 + sortedRoles.length) % sortedRoles.length;
-        if (soundEngine) {
-          soundEngine.magneticSnap();
-          soundEngine.slideOut();
-        }
-        setCurrentRoleId(sortedRoles[prevIndex].id);
-        setIsSidebarOpen(false);
-      }
+      // Note: Profile selection and vertical swipe inside sidebar is handled directly by RoleSidebar
     } else {
       // Main screen horizontal gestures:
       // Swipe LEFT TO RIGHT (deltaX > 45) -> opens sidebar!
