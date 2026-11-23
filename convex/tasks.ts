@@ -225,3 +225,166 @@ export const seedRoleMilestones = mutation({
     return { success: true, count: totalInserted };
   },
 });
+
+export const listAgentJobs = query({
+  args: { role: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("agent_jobs").order("desc").collect();
+    if (args.role && args.role !== "general") {
+      return all.filter((j) => j.role.toLowerCase() === args.role?.toLowerCase());
+    }
+    return all;
+  },
+});
+
+export const dispatchJob = mutation({
+  args: {
+    taskId: v.optional(v.id("tasks")),
+    role: v.string(),
+    title: v.string(),
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const jobId = await ctx.db.insert("agent_jobs", {
+      taskId: args.taskId,
+      role: args.role.toLowerCase(),
+      title: args.title,
+      prompt: args.prompt,
+      status: "completed",
+      durationSec: 4.2,
+      deliverables: [
+        "1. useNativeReelBridge.ts: Created accessibility broadcast listener for background detection.",
+        "2. FocusCompanion.tsx: Mapped emotional mascot nudges (Ferro at 15m, Kobi sleep at 30m).",
+        "3. Build Verification: TypeScript compiled cleanly (0 errors).",
+      ],
+      screenshotType: "terminal",
+      createdAt: now,
+      completedAt: now + 4200,
+    });
+    return jobId;
+  },
+});
+
+export const markJobAndTaskCompleted = mutation({
+  args: {
+    jobId: v.id("agent_jobs"),
+    taskId: v.optional(v.id("tasks")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.jobId, { status: "completed" });
+    if (args.taskId) {
+      await ctx.db.patch(args.taskId, { completed: true });
+      await ctx.scheduler.runAfter(30000, api.tasks.cleanup, { id: args.taskId });
+    }
+    return { success: true };
+  },
+});
+
+export const listInboxMessages = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("inbox_messages")
+      .filter((q) => q.eq(q.field("status"), "pending"))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const acceptInboxMessage = mutation({
+  args: {
+    messageId: v.id("inbox_messages"),
+    title: v.string(),
+    role: v.string(),
+    deadline: v.optional(v.union(v.number(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    await ctx.db.patch(args.messageId, { status: "accepted" });
+    const taskId = await ctx.db.insert("tasks", {
+      title: args.title,
+      completed: false,
+      deadline: args.deadline ?? null,
+      createdAt: now,
+      deadlineLastModified: now,
+      role: args.role.toLowerCase(),
+      stepIndex: 1,
+    });
+    return { success: true, taskId };
+  },
+});
+
+export const declineInboxMessage = mutation({
+  args: {
+    messageId: v.id("inbox_messages"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, { status: "declined" });
+    return { success: true };
+  },
+});
+
+export const seedDefaultInboxAndJobs = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existingMsgs = await ctx.db.query("inbox_messages").collect();
+    const now = Date.now();
+
+    if (existingMsgs.length === 0) {
+      await ctx.db.insert("inbox_messages", {
+        sender: "Neuvera Core Team (Dr. Rao)",
+        text: "Zaid bhai, hospital legal counsel sent the revised consent draft. We need to finalize the Neuvera entity type (LLP/Pvt Ltd) and DPIIT papers before Friday.",
+        timestamp: now - 3600000,
+        extractedTask: "Finalize Neuvera entity type (LLP/Pvt Ltd) & DPIIT paperwork",
+        suggestedRole: "neuvera",
+        status: "pending",
+      });
+
+      await ctx.db.insert("inbox_messages", {
+        sender: "AgrowVision Field Ops",
+        text: "Satellite imagery for Sector 4 drone survey was uploaded. Need automated OpenCV edge classification script to flag diseased leaf zones.",
+        timestamp: now - 7200000,
+        extractedTask: "Train & deploy OpenCV crop pest classification pipeline",
+        suggestedRole: "agrowvision",
+        status: "pending",
+      });
+    }
+
+    const existingJobs = await ctx.db.query("agent_jobs").collect();
+    if (existingJobs.length === 0) {
+      await ctx.db.insert("agent_jobs", {
+        role: "neuvera",
+        title: "Build & test Reel Intercept model",
+        prompt: "Implement background accessibility broadcast receiver in useNativeReelBridge.ts, connect mascot expressions (Ferro, Kobi), and run typecheck.",
+        status: "completed",
+        durationSec: 4.2,
+        deliverables: [
+          "1. useNativeReelBridge.ts: Created accessibility broadcast listener for background detection.",
+          "2. FocusCompanion.tsx: Mapped emotional mascot nudges (Ferro at 15m, Kobi sleep at 30m).",
+          "3. Build Verification: TypeScript compiled (0 errors).",
+        ],
+        screenshotType: "terminal",
+        createdAt: now - 1800000,
+        completedAt: now - 1795800,
+      });
+
+      await ctx.db.insert("agent_jobs", {
+        role: "neuvera",
+        title: "Generate 11-page Walkthrough Guide",
+        prompt: "Compile high-resolution PDF Neuvera_Walkthrough_Guide.pdf with all 14 screens and vector brand assets.",
+        status: "completed",
+        durationSec: 12.1,
+        deliverables: [
+          "1. Compiled high-resolution PDF Neuvera_Walkthrough_Guide.pdf (3.17 MB).",
+          "2. All 14 screen assets captured and embedded at 300 DPI.",
+        ],
+        screenshotType: "document",
+        createdAt: now - 86400000,
+        completedAt: now - 86387900,
+      });
+    }
+
+    return { success: true };
+  },
+});

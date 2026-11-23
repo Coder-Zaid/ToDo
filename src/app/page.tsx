@@ -6,12 +6,16 @@ import { format } from "date-fns";
 import { TaskItem } from "@/components/TaskItem";
 import { AddTask } from "@/components/AddTask";
 import { NotificationToggle } from "@/components/NotificationToggle";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { soundEngine } from "@/lib/sounds";
-import { Volume2, VolumeX, Check } from "lucide-react";
+import { Volume2, VolumeX, Check, Mail } from "lucide-react";
 import { ROLES, sortRolesByDeadline } from "@/lib/roles";
 import { RoleSidebar } from "@/components/RoleSidebar";
 import { RoleWorkspace } from "@/components/RoleWorkspace";
+import { InboxTriageModal } from "@/components/InboxTriageModal";
+import { JarvisCornerDrawer } from "@/components/JarvisCornerDrawer";
+import { JarvisDispatchDrawer } from "@/components/JarvisDispatchDrawer";
+import { OutputsView } from "@/components/OutputsView";
 
 export default function Home() {
   const tasks = useQuery(api.tasks.list);
@@ -20,6 +24,19 @@ export default function Home() {
   const [today, setToday] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Stealth Modes: "todo" | "outputs"
+  const [viewMode, setViewMode] = useState<"todo" | "outputs">("todo");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Hidden Modules & Modals
+  const [isInboxModalOpen, setIsInboxModalOpen] = useState(false);
+  const [isCornerOpen, setIsCornerOpen] = useState(false);
+  const [dispatchTask, setDispatchTask] = useState<any | null>(null);
+
+  // Triple Click detection
+  const clickCount = useRef(0);
+  const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Swipe detection coordinates
   const touchStartX = useRef<number | null>(null);
@@ -46,6 +63,18 @@ export default function Home() {
     }, 80);
   };
 
+  // Stealth Mode Flip with 3D Depth Zoom Transition
+  const toggleViewMode = useCallback(() => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    if (soundEngine) soundEngine.magneticSnap();
+
+    setViewMode((prev) => (prev === "todo" ? "outputs" : "todo"));
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 460);
+  }, [isTransitioning]);
+
   useEffect(() => {
     setToday(format(new Date(), "MMM d"));
     setIsLoaded(true);
@@ -56,7 +85,13 @@ export default function Home() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (isSidebarOpen) {
+        if (dispatchTask) {
+          setDispatchTask(null);
+        } else if (isCornerOpen) {
+          setIsCornerOpen(false);
+        } else if (isInboxModalOpen) {
+          setIsInboxModalOpen(false);
+        } else if (isSidebarOpen) {
           if (soundEngine) soundEngine.slideOut();
           setIsSidebarOpen(false);
         } else {
@@ -75,10 +110,38 @@ export default function Home() {
       }
     };
 
+    // Stealth Triple-Click Listener for Mode Flip
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest("button") ||
+        target.closest("input") ||
+        target.closest("textarea") ||
+        target.closest("select") ||
+        target.closest(".drawer-right")
+      ) {
+        return;
+      }
+
+      clickCount.current += 1;
+      if (clickCount.current === 1) {
+        clickTimer.current = setTimeout(() => {
+          clickCount.current = 0;
+        }, 450);
+      } else if (clickCount.current === 3) {
+        if (clickTimer.current) clearTimeout(clickTimer.current);
+        clickCount.current = 0;
+        toggleViewMode();
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSidebarOpen]);
+    document.addEventListener("click", handleDocumentClick);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("click", handleDocumentClick);
+    };
+  }, [isSidebarOpen, isCornerOpen, isInboxModalOpen, dispatchTask, toggleViewMode, soundEnabled]);
 
   useEffect(() => {
     if (soundEngine) {
@@ -99,13 +162,23 @@ export default function Home() {
     const deltaX = touchEndX - touchStartX.current;
     const deltaY = touchEndY - touchStartY.current;
 
+    // Corner drawer open: swipe right closes it
+    if (isCornerOpen) {
+      if (deltaX > 45) {
+        setIsCornerOpen(false);
+      }
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+
     if (isSidebarOpen) {
       // Swipe left -> close sidebar
       if (deltaX < -35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.1) {
         if (soundEngine) soundEngine.slideOut();
         setIsSidebarOpen(false);
       }
-      // Swipe DOWN -> switch to next profile and self-hide immediately!
+      // Swipe DOWN -> switch to next profile
       else if (deltaY > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
         if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -119,7 +192,7 @@ export default function Home() {
         setCurrentRoleId(sortedRoles[nextIndex].id);
         setIsSidebarOpen(false);
       }
-      // Swipe UP -> switch to previous profile and self-hide immediately!
+      // Swipe UP -> switch to previous profile
       else if (deltaY < -20 && Math.abs(deltaY) > Math.abs(deltaX)) {
         if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
@@ -134,10 +207,28 @@ export default function Home() {
         setIsSidebarOpen(false);
       }
     } else {
-      // When closed: swipe horizontally (left OR right with > 40px) -> open sidebar
-      if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Main screen closed gestures:
+      // Swipe RIGHT (deltaX > 50) -> opens hidden Jarvis Corner!
+      if (deltaX > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (soundEngine) soundEngine.slideIn();
+        setIsCornerOpen(true);
+      }
+      // Swipe LEFT (deltaX < -50) -> opens role dock
+      else if (deltaX < -50 && Math.abs(deltaX) > Math.abs(deltaY)) {
         if (soundEngine) soundEngine.slideIn();
         setIsSidebarOpen(true);
+      }
+      // Swipe DOWN/UP on main view -> switches profile sequentially
+      else if (deltaY > 35 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
+        const nextIndex = (currentIndex + 1) % sortedRoles.length;
+        if (soundEngine) soundEngine.magneticSnap();
+        setCurrentRoleId(sortedRoles[nextIndex].id);
+      } else if (deltaY < -35 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
+        const prevIndex = (currentIndex - 1 + sortedRoles.length) % sortedRoles.length;
+        if (soundEngine) soundEngine.magneticSnap();
+        setCurrentRoleId(sortedRoles[prevIndex].id);
       }
     }
 
@@ -163,6 +254,47 @@ export default function Home() {
           setCurrentRoleId(roleId);
         }}
         onClose={() => setIsSidebarOpen(false)}
+      />
+
+      {/* Shared Backdrop for Drawers */}
+      {(isCornerOpen || dispatchTask) && (
+        <div
+          onClick={() => {
+            setIsCornerOpen(false);
+            setDispatchTask(null);
+          }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-[2px] z-40 transition-opacity"
+        />
+      )}
+
+      {/* Hidden Jarvis Corner Drawer (Swipe Right from any profile) */}
+      <JarvisCornerDrawer
+        isOpen={isCornerOpen}
+        onClose={() => setIsCornerOpen(false)}
+        tasks={(tasks as any) ?? []}
+        onSelectTaskToDispatch={(t) => {
+          setIsCornerOpen(false);
+          setDispatchTask(t);
+        }}
+      />
+
+      {/* Hidden Jarvis Dispatch Drawer (Opens when user gives task to Jarvis) */}
+      <JarvisDispatchDrawer
+        isOpen={Boolean(dispatchTask)}
+        onClose={() => setDispatchTask(null)}
+        task={dispatchTask}
+        onExecuted={() => {
+          if (viewMode !== "outputs") {
+            toggleViewMode();
+          }
+        }}
+      />
+
+      {/* Inbox Message Triage Modal (Only Visible Button Action) */}
+      <InboxTriageModal
+        isOpen={isInboxModalOpen}
+        onClose={() => setIsInboxModalOpen(false)}
+        defaultRole={currentRoleId}
       />
 
       <div
@@ -202,7 +334,17 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Controls: The ONLY visible action button (Scan Messages) + sound/notifications */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsInboxModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#0F0F0F] border border-[#222222] text-[#888888] hover:text-white hover:border-[#444] transition-colors text-xs font-mono text-[10px] cursor-pointer"
+              title="Scan messages for tasks"
+            >
+              <Mail size={11} />
+              <span>Scan Messages</span>
+            </button>
+
             <NotificationToggle />
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
@@ -214,46 +356,92 @@ export default function Home() {
           </div>
         </div>
 
-        {/* View Mode Switching: Ordinary General vs. Executive Role Workspace */}
-        {currentRoleId === "general" ? (
-          <>
-            {/* Header */}
-            <header className="flex justify-between items-start">
-              <div className="flex flex-col gap-0.5">
-                <h1 className="text-xl font-medium tracking-tight text-[#EAEAEA]">
-                  Today • {today}
-                </h1>
-                <p className="text-[#7A7A7A] text-[13px]">
-                  {remainingCount} {remainingCount === 1 ? "task" : "tasks"} remaining
-                </p>
-              </div>
-            </header>
+        {/* 3D STAGE CONTAINER: Houses the Dual Modes (TODO & OUTPUTS) */}
+        <div className="stage-3d relative w-full min-h-[420px]">
+          {/* ========================================================= */}
+          {/* VIEW A: TODO MODE                                         */}
+          {/* ========================================================= */}
+          <div
+            className={`view-layer w-full flex flex-col gap-6 absolute top-0 left-0 right-0 ${
+              viewMode === "todo"
+                ? isTransitioning
+                  ? "anim-zoom-in-down"
+                  : ""
+                : isTransitioning
+                ? "anim-zoom-out-up"
+                : "hidden"
+            }`}
+            style={{ display: viewMode === "todo" || isTransitioning ? "flex" : "none" }}
+          >
+            {/* View Mode Switching: Ordinary General vs. Executive Role Workspace */}
+            {currentRoleId === "general" ? (
+              <>
+                {/* Header */}
+                <header className="flex justify-between items-start">
+                  <div className="flex flex-col gap-0.5">
+                    <h1 className="text-xl font-medium tracking-tight text-[#EAEAEA]">
+                      Today • {today}
+                    </h1>
+                    <p className="text-[#7A7A7A] text-[13px]">
+                      {remainingCount} {remainingCount === 1 ? "task" : "tasks"} remaining
+                    </p>
+                  </div>
+                </header>
 
-            {/* Task List (Small scrollable area if many tasks) */}
-            <div className="flex flex-col max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {generalTasks.map((task: any) => (
-                <TaskItem key={task._id} task={task} />
-              ))}
-              {generalTasks.length === 0 && (
-                <p className="text-[#4A4A4A] py-8 text-center text-[13px] italic animate-task-in">
-                  No tasks for today.
-                </p>
-              )}
+                {/* Task List */}
+                <div className="flex flex-col max-h-[400px] overflow-y-auto pr-2 scrollbar-none">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {generalTasks.map((task: any) => (
+                    <TaskItem key={task._id} task={task} />
+                  ))}
+                  {generalTasks.length === 0 && (
+                    <p className="text-[#4A4A4A] py-8 text-center text-[13px] italic animate-task-in">
+                      No tasks for today.
+                    </p>
+                  )}
+                </div>
+
+                {/* Add Task */}
+                <AddTask role="general" />
+              </>
+            ) : (
+              /* Executive Role Workspace (Single Step 1 Focus + Expandable Roadmap) */
+              <RoleWorkspace
+                role={activeRole}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                tasks={(tasks as any) ?? []}
+                onOpenSidebar={() => setIsSidebarOpen(true)}
+              />
+            )}
+          </div>
+
+          {/* ========================================================= */}
+          {/* VIEW B: OUTPUTS MODE (STEALTH 3D DEPTH FLIP)              */}
+          {/* ========================================================= */}
+          <div
+            className={`view-layer w-full flex flex-col gap-4 absolute top-0 left-0 right-0 ${
+              viewMode === "outputs"
+                ? isTransitioning
+                  ? "anim-zoom-in-up"
+                  : ""
+                : isTransitioning
+                ? "anim-zoom-out-down"
+                : "hidden"
+            }`}
+            style={{ display: viewMode === "outputs" || isTransitioning ? "flex" : "none" }}
+          >
+            {/* Context Subtitle */}
+            <div className="flex items-center justify-between text-[10px] font-mono text-[#555555] border-b border-[#141414] pb-2">
+              <span className="uppercase text-[#888888]">
+                {activeRole.name} • EXECUTION STREAM & EVIDENCE
+              </span>
+              <span>DELIVERABLES</span>
             </div>
 
-            {/* Add Task */}
-            <AddTask role="general" />
-          </>
-        ) : (
-          /* Executive Role Workspace (Single Step 1 Focus + Expandable Roadmap) */
-          <RoleWorkspace
-            role={activeRole}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            tasks={(tasks as any) ?? []}
-            onOpenSidebar={() => setIsSidebarOpen(true)}
-          />
-        )}
+            {/* Dedicated Outputs Stream for the Active Profile */}
+            <OutputsView roleId={currentRoleId} roleName={activeRole.name} />
+          </div>
+        </div>
       </div>
     </main>
   );

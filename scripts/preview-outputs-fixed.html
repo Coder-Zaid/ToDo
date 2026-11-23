@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>black-todo • Outputs Mode Fixed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #000000;
+      color: #EAEAEA;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      overflow-x: hidden;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .stage-3d {
+      perspective: 1000px;
+      perspective-origin: 50% 30%;
+      position: relative;
+    }
+    .view-layer {
+      backface-visibility: hidden;
+      will-change: transform, opacity, filter;
+      transform-style: preserve-3d;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8 flex justify-center items-start bg-black">
+
+  <div class="w-full max-w-lg flex flex-col gap-6">
+
+    <!-- Top Stealth Header (Outputs Mode) -->
+    <div class="flex items-center justify-between">
+      <div id="modeToggleArea" class="flex items-center gap-2 group">
+        <div class="w-6 h-6 flex items-center justify-center bg-white rounded-md">
+          <span class="font-mono text-xs font-black text-black">N</span>
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold tracking-[0.3em] uppercase text-[#EAEAEA]">NEUVERA</span>
+            <span id="modeBadge" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white text-black font-bold">OUTPUTS</span>
+          </div>
+          <div class="h-[1px] w-full bg-gradient-to-r from-white/20 to-transparent"></div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-2 text-[#4A4A4A]">
+        <button id="modeSwitchBtn" class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#0F0F0F] border border-[#222222] text-[#888888] text-xs">
+          <span class="text-[10px] font-mono font-medium text-white" id="modeSwitchBtnLabel">⮂ TODO</span>
+        </button>
+
+        <div class="w-7 h-7 flex items-center justify-center rounded-md text-[#4A4A4A]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode Context Bar -->
+    <div class="flex items-center justify-between text-[10px] font-mono text-[#444444] border-b border-[#141414] pb-2">
+      <span id="viewSubtitle">JARVIS EXECUTION STREAM & LOGS</span>
+      <span id="statusIndicator" class="text-[#555555]">Jarvis: <span class="text-white">&bull; Online</span></span>
+    </div>
+
+    <!-- 3D STAGE CONTAINER -->
+    <div class="stage-3d relative w-full min-h-[380px]">
+
+      <!-- VIEW B: OUTPUTS MODE -->
+      <div id="outputsView" class="view-layer w-full flex flex-col gap-4 absolute top-0 left-0 right-0">
+
+        <!-- Output Card 1: With Attached Output Screenshot -->
+        <div class="p-4 rounded-xl bg-[#080808] border border-[#1C1C1C] flex flex-col gap-3 font-mono">
+          <div class="flex items-center justify-between border-b border-[#141414] pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+              <span class="text-xs font-semibold text-white">Build & test Reel Intercept model</span>
+            </div>
+            <span class="text-[10px] text-[#555555]">Today 11:42 AM • 4.2s</span>
+          </div>
+
+          <div class="text-xs text-[#999999] leading-relaxed flex flex-col gap-1.5">
+            <div><span class="text-[#CCCCCC]">1. useNativeReelBridge.ts:</span> Created accessibility broadcast listener for background detection.</div>
+            <div><span class="text-[#CCCCCC]">2. FocusCompanion.tsx:</span> Mapped emotional nudges (Ferro at 15m, Kobi sleep at 30m).</div>
+            <div><span class="text-[#CCCCCC]">3. Build Verification:</span> <span class="text-white">TypeScript compiled (0 errors)</span>.</div>
+          </div>
+
+          <!-- ATTACHED OUTPUT SCREENSHOT -->
+          <div class="flex flex-col gap-1.5 pt-1">
+            <div class="flex items-center justify-between text-[10px] font-mono text-[#666666]">
+              <span class="flex items-center gap-1.5 text-[#AAAAAA]">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>ATTACHED OUTPUT SCREENSHOT</span>
+              </span>
+              <span class="text-[9px] text-[#555555]">Click to expand</span>
+            </div>
+
+            <!-- Screenshot Preview Box -->
+            <div class="group relative rounded-lg overflow-hidden border border-[#222222] bg-[#050505]">
+              <!-- Mock of Output Screenshot (Terminal & Test Verification) -->
+              <div class="p-3 bg-[#0C0C0C] border-b border-[#181818] flex items-center justify-between text-[10px] text-[#666666]">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-[#2A2A2A]"></span>
+                  <span class="w-2 h-2 rounded-full bg-[#2A2A2A]"></span>
+                  <span class="w-2 h-2 rounded-full bg-[#2A2A2A]"></span>
+                  <span class="text-[#888888] font-mono ml-1.5">verification_run_reel_intercept.log</span>
+                </div>
+                <span class="text-[9px] px-1.5 py-0.2 rounded bg-[#161616] text-[#4ADE80] border border-[#222222]">&check; PASS (100%)</span>
+              </div>
+              <div class="p-3 font-mono text-[11px] text-[#A0A0A0] leading-relaxed flex flex-col gap-1 bg-black">
+                <div class="text-[#777777]">&gt; next build --experimental-app-only</div>
+                <div class="text-white">&check; Compiled in 1.4s (38 modules)</div>
+                <div class="text-[#888888]">&gt; vitest run tests/reel-intercept.test.ts</div>
+                <div class="text-[#4ADE80]">&check; tests/reel-intercept.test.ts (4 passed, 0 failed)</div>
+                <div class="text-[#888888]">&gt; useNativeReelBridge.ts: accessibility broadcast listener registered</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-[#141414] text-[11px]">
+            <span class="text-white hover:underline cursor-pointer">&check; Mark task completed</span>
+            <span class="text-[#666666] hover:text-white cursor-pointer">Copy Summary</span>
+          </div>
+        </div>
+
+        <!-- Output Card 2 -->
+        <div class="p-4 rounded-xl bg-[#080808] border border-[#1C1C1C] flex flex-col gap-3 font-mono">
+          <div class="flex items-center justify-between border-b border-[#141414] pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+              <span class="text-xs font-semibold text-white">Generate 11-page Walkthrough Guide</span>
+            </div>
+            <span class="text-[10px] text-[#555555]">Nov 22 • 12.1s</span>
+          </div>
+
+          <div class="text-xs text-[#999999] leading-relaxed">
+            Compiled high-resolution PDF <span class="text-white">Neuvera_Walkthrough_Guide.pdf</span> (3.17 MB). All 14 screen assets captured and embedded.
+          </div>
+
+          <!-- ATTACHED OUTPUT SCREENSHOT -->
+          <div class="flex flex-col gap-1.5 pt-1">
+            <div class="flex items-center justify-between text-[10px] font-mono text-[#666666]">
+              <span class="flex items-center gap-1.5 text-[#AAAAAA]">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>ATTACHED OUTPUT SCREENSHOT</span>
+              </span>
+              <span class="text-[9px] text-[#555555]">Page 1 / 14</span>
+            </div>
+
+            <!-- PDF Page 1 Thumbnail -->
+            <div class="group relative rounded-lg overflow-hidden border border-[#222222] bg-[#0A0A0A] flex flex-col items-center justify-center p-4 text-center gap-1.5">
+              <div class="w-10 h-14 rounded border border-[#2E2E2E] bg-[#121212] flex flex-col items-center justify-center shadow-lg">
+                <span class="font-mono text-[8px] font-bold text-white">PDF</span>
+                <span class="text-[6px] text-[#666666]">11 pgs</span>
+              </div>
+              <span class="text-[10px] font-medium text-[#CCCCCC]">Neuvera_Walkthrough_Guide.pdf</span>
+              <span class="text-[8px] text-[#666666]">High-resolution vector assets embedded</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-[#141414] text-[11px]">
+            <span class="text-[#555555]">&check; Completed</span>
+            <span class="text-[#666666] hover:text-white cursor-pointer">Open PDF</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

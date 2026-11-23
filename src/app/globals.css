@@ -66,3 +66,92 @@ body {
 .animate-task-out {
   animation: task-exit 100ms ease-in forwards;
 }
+
+/* 3D Depth Stage & Cinematic Transitions */
+.stage-3d {
+  perspective: 1000px;
+  perspective-origin: 50% 30%;
+  position: relative;
+}
+
+.view-layer {
+  backface-visibility: hidden;
+  will-change: transform, opacity, filter;
+  transform-style: preserve-3d;
+}
+
+@keyframes smoothZoomOutUp {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -60px, -120px) scale(0.88);
+    filter: blur(1.5px);
+  }
+}
+
+@keyframes smoothZoomInUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 80px, -120px) scale(0.88);
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes smoothZoomOutDown {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 60px, -120px) scale(0.88);
+    filter: blur(1.5px);
+  }
+}
+
+@keyframes smoothZoomInDown {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -80px, -120px) scale(0.88);
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.anim-zoom-out-up {
+  animation: smoothZoomOutUp 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+.anim-zoom-in-up {
+  animation: smoothZoomInUp 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.anim-zoom-out-down {
+  animation: smoothZoomOutDown 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+.anim-zoom-in-down {
+  animation: smoothZoomInDown 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Right-anchored Drawer Transitions */
+.drawer-right {
+  transform: translateX(100%);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.drawer-right.open {
+  transform: translateX(0);
+}
