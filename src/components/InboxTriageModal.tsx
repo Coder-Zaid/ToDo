@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
-import { Mail, Check, X } from "lucide-react";
+import { Mail, Check, X, Loader2 } from "lucide-react";
 import { ROLES } from "@/lib/roles";
 import { soundEngine } from "@/lib/sounds";
 
@@ -20,47 +20,61 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
   const seedMutation = useMutation(api.tasks.seedDefaultInboxAndJobs);
 
   const [selectedRole, setSelectedRole] = useState(defaultRole);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Active message is always the first pending message in the reactive query
+  const currentMsg = messages && messages.length > 0 ? messages[0] : null;
 
   useEffect(() => {
-    if (messages && messages.length === 0) {
-      seedMutation().catch(() => {});
+    if (currentMsg?.suggestedRole) {
+      setSelectedRole(currentMsg.suggestedRole);
+    } else {
+      setSelectedRole(defaultRole);
     }
-  }, [messages, seedMutation]);
-
-  useEffect(() => {
-    setSelectedRole(defaultRole);
-  }, [defaultRole]);
+  }, [currentMsg, defaultRole]);
 
   if (!isOpen) return null;
 
-  const currentMsg = messages && messages.length > 0 ? messages[currentIndex] : null;
-
   const handleAccept = async () => {
-    if (!currentMsg) return;
-    if (soundEngine) soundEngine.pop();
-    await acceptMutation({
-      messageId: currentMsg._id,
-      title: currentMsg.extractedTask,
-      role: selectedRole,
-    });
-    if (messages && currentIndex >= messages.length - 1) {
-      onClose();
+    if (!currentMsg || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      if (soundEngine) soundEngine.pop();
+      await acceptMutation({
+        messageId: currentMsg._id,
+        title: currentMsg.extractedTask,
+        role: selectedRole,
+      });
+      if (messages && messages.length <= 1) {
+        setTimeout(onClose, 300);
+      }
+    } catch (err) {
+      console.error("Failed to accept message:", err);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleDecline = async () => {
-    if (!currentMsg) return;
-    if (soundEngine) soundEngine.click();
-    await declineMutation({ messageId: currentMsg._id });
-    if (messages && currentIndex >= messages.length - 1) {
-      onClose();
+    if (!currentMsg || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      if (soundEngine) soundEngine.click();
+      await declineMutation({ messageId: currentMsg._id });
+      if (messages && messages.length <= 1) {
+        setTimeout(onClose, 300);
+      }
+    } catch (err) {
+      console.error("Failed to decline message:", err);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-[2px] z-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg bg-[#090909] border border-[#222222] rounded-2xl p-6 flex flex-col gap-5 shadow-2xl animate-panel-in">
+        {/* Header */}
         <div className="flex items-center justify-between border-b border-[#1A1A1A] pb-3.5">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded flex items-center justify-center bg-white text-black">
@@ -69,6 +83,11 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
             <span className="font-mono text-xs font-semibold text-white tracking-wider">
               MESSAGE INBOX SCAN
             </span>
+            {messages && messages.length > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1A1A1A] text-[#888888] border border-[#262626]">
+                {messages.length} pending
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -83,7 +102,7 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
             {/* Scanned Message Card */}
             <div className="p-3.5 rounded-xl bg-[#111111] border border-[#1E1E1E] flex flex-col gap-2">
               <div className="flex items-center justify-between text-[10px] font-mono">
-                <span className="text-[#888888]">{currentMsg.sender}</span>
+                <span className="text-[#AAAAAA] font-medium">{currentMsg.sender}</span>
                 <span className="text-[#555555]">
                   {new Date(currentMsg.timestamp).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -125,23 +144,49 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
             <div className="flex items-center gap-2 pt-2 border-t border-[#1A1A1A]">
               <button
                 onClick={handleAccept}
-                className="flex-1 py-2.5 rounded-xl bg-white text-black font-semibold text-xs hover:bg-[#D5D5D5] transition-colors cursor-pointer flex items-center justify-center gap-1.5 font-mono"
+                disabled={isProcessing}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black font-semibold text-xs hover:bg-[#D5D5D5] transition-colors cursor-pointer flex items-center justify-center gap-1.5 font-mono disabled:opacity-50"
               >
-                <Check size={14} className="stroke-[3px]" />
+                {isProcessing ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} className="stroke-[3px]" />
+                )}
                 <span>Accept Task</span>
               </button>
               <button
                 onClick={handleDecline}
-                className="py-2.5 px-4 rounded-xl bg-[#141414] border border-[#262626] text-[#888888] hover:text-[#E00] transition-colors text-xs cursor-pointer font-mono"
+                disabled={isProcessing}
+                className="py-2.5 px-4 rounded-xl bg-[#141414] border border-[#262626] text-[#888888] hover:text-[#E00] hover:border-[#441111] transition-colors text-xs cursor-pointer font-mono disabled:opacity-50 flex items-center gap-1.5"
               >
-                Decline
+                {isProcessing && <Loader2 size={12} className="animate-spin" />}
+                <span>Decline</span>
               </button>
             </div>
           </>
         ) : (
-          <div className="py-8 text-center flex flex-col items-center gap-2 text-[#555555] font-mono text-xs">
-            <span>&check; No pending messages</span>
-            <span className="text-[10px] text-[#444444]">All message triage tasks up to date</span>
+          <div className="py-8 text-center flex flex-col items-center gap-3 text-[#555555] font-mono text-xs">
+            <div className="w-8 h-8 rounded-full bg-[#141414] border border-[#222222] flex items-center justify-center text-white">
+              <Check size={14} />
+            </div>
+            <span className="text-[#CCCCCC] font-medium">&check; All messages triaged</span>
+            <span className="text-[10px] text-[#555555]">
+              No pending actionable messages from WhatsApp
+            </span>
+            <div className="flex items-center gap-3 mt-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-[#DDD] transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+              <button
+                onClick={() => seedMutation()}
+                className="text-[10px] text-[#555555] hover:text-[#888888] underline cursor-pointer"
+              >
+                Reset demo messages
+              </button>
+            </div>
           </div>
         )}
       </div>
