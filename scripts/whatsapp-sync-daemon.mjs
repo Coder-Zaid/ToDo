@@ -11,12 +11,14 @@ if (!fs.existsSync(tokenPath)) {
 }
 
 let tokenData = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
-const CONVEX_URL = "https://pastel-vulture-190.convex.cloud";
-const client = new ConvexHttpClient(CONVEX_URL);
+const DEV_URL = "https://jovial-impala-287.convex.cloud";
+const PROD_URL = "https://pastel-vulture-190.convex.cloud";
+const devClient = new ConvexHttpClient(DEV_URL);
+const prodClient = new ConvexHttpClient(PROD_URL);
 
 console.log("=================================================");
-console.log("LIVE WHATSAPP SYNC DAEMON ACTIVE");
-console.log("Convex Cloud: " + CONVEX_URL);
+console.log("LIVE DUAL-SYNC WHATSAPP DAEMON ACTIVE");
+console.log("Syncing to BOTH DEV (" + DEV_URL + ") and PROD (" + PROD_URL + ")");
 console.log("Polling interval: 6 seconds");
 console.log("=================================================");
 
@@ -160,14 +162,19 @@ async function syncCycle() {
               console.log(`[${new Date().toLocaleTimeString()}] INGESTING NEW WHATSAPP MESSAGE:`);
               console.log(`  "${cleanText}" -> Task: "${taskCandidate}" (${role})`);
 
-              await client.mutation("tasks:pushLiveWhatsAppMessage", {
+              const payload = {
                 sender: sender === "Me" ? "You (WhatsApp Note)" : sender,
                 text: cleanText,
                 extractedTask: taskCandidate,
                 suggestedRole: role,
                 timestamp: Date.now(),
-              });
-              console.log(`  -> Pushed to Convex!`);
+              };
+
+              await Promise.allSettled([
+                devClient.mutation("tasks:pushLiveWhatsAppMessage", payload),
+                prodClient.mutation("tasks:pushLiveWhatsAppMessage", payload),
+              ]);
+              console.log(`  -> Synced to both DEV and PROD!`);
             }
           }
         }
