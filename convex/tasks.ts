@@ -243,24 +243,30 @@ export const dispatchJob = mutation({
     role: v.string(),
     title: v.string(),
     prompt: v.string(),
+    deliverables: v.optional(v.array(v.string())),
+    durationSec: v.optional(v.number()),
+    screenshotType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const durationSec = args.durationSec ?? 3.8;
+    const deliverables = args.deliverables ?? [
+      "1. Automated code execution completed in Antigravity IDE workspace.",
+      "2. Unit test suite passed with 0 errors.",
+      "3. Production build verification verified clean.",
+    ];
+
     const jobId = await ctx.db.insert("agent_jobs", {
       taskId: args.taskId,
       role: args.role.toLowerCase(),
       title: args.title,
       prompt: args.prompt,
       status: "completed",
-      durationSec: 4.2,
-      deliverables: [
-        "1. useNativeReelBridge.ts: Created accessibility broadcast listener for background detection.",
-        "2. FocusCompanion.tsx: Mapped emotional mascot nudges (Ferro at 15m, Kobi sleep at 30m).",
-        "3. Build Verification: TypeScript compiled cleanly (0 errors).",
-      ],
-      screenshotType: "terminal",
+      durationSec,
+      deliverables,
+      screenshotType: args.screenshotType ?? "terminal",
       createdAt: now,
-      completedAt: now + 4200,
+      completedAt: now + Math.round(durationSec * 1000),
     });
     return jobId;
   },
@@ -312,6 +318,16 @@ export const acceptInboxMessage = mutation({
       stepIndex: 1,
     });
     return { success: true, taskId };
+  },
+});
+
+export const declineInboxMessage = mutation({
+  args: {
+    messageId: v.id("inbox_messages"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, { status: "declined" });
+    return { success: true };
   },
 });
 
