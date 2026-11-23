@@ -207,29 +207,18 @@ export default function Home() {
         setIsSidebarOpen(false);
       }
     } else {
-      // Main screen closed gestures:
+      // Main screen horizontal gestures:
       // Swipe LEFT TO RIGHT (deltaX > 45) -> opens sidebar!
-      if (deltaX > 45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
         if (soundEngine) soundEngine.slideIn();
         setIsSidebarOpen(true);
       }
       // Swipe RIGHT TO LEFT (deltaX < -45) -> opens hidden Jarvis Corner!
-      else if (deltaX < -45 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      else if (deltaX < -45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
         if (soundEngine) soundEngine.slideIn();
         setIsCornerOpen(true);
       }
-      // Swipe DOWN/UP on main view -> switches profile sequentially
-      else if (deltaY > 35 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
-        const nextIndex = (currentIndex + 1) % sortedRoles.length;
-        if (soundEngine) soundEngine.magneticSnap();
-        setCurrentRoleId(sortedRoles[nextIndex].id);
-      } else if (deltaY < -35 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        const currentIndex = sortedRoles.findIndex((r) => r.id === currentRoleId);
-        const prevIndex = (currentIndex - 1 + sortedRoles.length) % sortedRoles.length;
-        if (soundEngine) soundEngine.magneticSnap();
-        setCurrentRoleId(sortedRoles[prevIndex].id);
-      }
+      // Note: Vertical drags (deltaY) are NOT intercepted here so the task list & outputs scroll naturally!
     }
 
     touchStartX.current = null;
