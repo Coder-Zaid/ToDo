@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, useEffect } from "react";
-import { Mail, Check, X, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Mail, Check, X, Loader2, RotateCw } from "lucide-react";
 import { ROLES } from "@/lib/roles";
 import { soundEngine } from "@/lib/sounds";
 
@@ -20,10 +20,40 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
   const seedMutation = useMutation(api.tasks.seedDefaultInboxAndJobs);
 
   const [selectedRole, setSelectedRole] = useState(defaultRole);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
 
-  // Active message is always the first pending item in the queue
-  const currentMsg = messages && messages.length > 0 ? messages[0] : null;
+  // Trigger active WhatsApp scan
+  const triggerScan = useCallback(async () => {
+    setIsScanning(true);
+    setScanStatus("Scanning WhatsApp...");
+    try {
+      const res = await fetch("/api/scan-messages", { method: "POST" });
+      const data = await res.json();
+      if (data.newTasksAdded > 0) {
+        setScanStatus(`Found ${data.newTasksAdded} new task${data.newTasksAdded > 1 ? "s" : ""}`);
+      } else {
+        setScanStatus("Inbox up to date");
+      }
+    } catch (_) {
+      setScanStatus("Synced");
+    } finally {
+      setIsScanning(false);
+      setTimeout(() => setScanStatus(null), 3000);
+    }
+  }, []);
+
+  // Auto-scan on modal open
+  useEffect(() => {
+    if (isOpen) {
+      triggerScan();
+    }
+  }, [isOpen, triggerScan]);
+
+  // Filter out any optimistically dismissed items
+  const pendingMessages = (messages || []).filter((m) => !dismissedIds.includes(m._id));
+  const currentMsg = pendingMessages[0] || null;
 
   useEffect(() => {
     if (currentMsg?.suggestedRole) {
@@ -36,46 +66,50 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
   if (!isOpen) return null;
 
   const handleAccept = async (e?: React.SyntheticEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    if (e) e.stopPropagation();
+    if (!currentMsg) return;
+    const msg = currentMsg;
+
+    // 1. Optimistic removal: vanish card instantly in 0ms!
+    setDismissedIds((prev) => [...prev, msg._id]);
+    if (soundEngine) soundEngine.pop();
+
+    // If this was the last item, close the modal immediately
+    if (pendingMessages.length <= 1) {
+      setTimeout(onClose, 250);
     }
-    if (!currentMsg || isProcessing) return;
-    setIsProcessing(true);
+
+    // 2. Fire mutation in background
     try {
-      if (soundEngine) soundEngine.pop();
       await acceptMutation({
-        messageId: currentMsg._id,
-        title: currentMsg.extractedTask,
+        messageId: msg._id,
+        title: msg.extractedTask,
         role: selectedRole,
       });
-      if (messages && messages.length <= 1) {
-        setTimeout(onClose, 300);
-      }
     } catch (err) {
       console.error("Failed to accept message:", err);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   const handleDecline = async (e?: React.SyntheticEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    if (e) e.stopPropagation();
+    if (!currentMsg) return;
+    const msgId = currentMsg._id;
+
+    // 1. Optimistic removal: vanish card instantly in 0ms!
+    setDismissedIds((prev) => [...prev, msgId]);
+    if (soundEngine) soundEngine.click();
+
+    // If this was the last item, close the modal immediately
+    if (pendingMessages.length <= 1) {
+      setTimeout(onClose, 250);
     }
-    if (!currentMsg || isProcessing) return;
-    setIsProcessing(true);
+
+    // 2. Fire mutation in background
     try {
-      if (soundEngine) soundEngine.click();
-      await declineMutation({ messageId: currentMsg._id });
-      if (messages && messages.length <= 1) {
-        setTimeout(onClose, 300);
-      }
+      await declineMutation({ messageId: msgId });
     } catch (err) {
       console.error("Failed to decline message:", err);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -99,19 +133,35 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
             <span className="font-mono text-xs font-semibold text-white tracking-wider">
               MESSAGE INBOX SCAN
             </span>
-            {messages && messages.length > 0 && (
+            {pendingMessages.length > 0 && (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1A1A1A] text-[#888888] border border-[#262626]">
-                {messages.length} pending
+                {pendingMessages.length} pending
+              </span>
+            )}
+            {scanStatus && (
+              <span className="text-[9px] font-mono text-[#00E5FF] animate-pulse">
+                • {scanStatus}
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-[#666666] hover:text-white cursor-pointer p-1.5 text-base transition-colors touch-manipulation"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={triggerScan}
+              disabled={isScanning}
+              title="Rescan WhatsApp now"
+              className="text-[#666666] hover:text-white cursor-pointer p-1.5 text-base transition-colors touch-manipulation disabled:opacity-40"
+            >
+              <RotateCw size={13} className={isScanning ? "animate-spin text-[#00E5FF]" : ""} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-[#666666] hover:text-white cursor-pointer p-1.5 text-base transition-colors touch-manipulation"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {currentMsg ? (
@@ -162,26 +212,18 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
               <button
                 type="button"
                 onClick={handleDecline}
-                onTouchEnd={handleDecline}
-                disabled={isProcessing}
-                className="flex-1 py-3 px-4 min-h-[48px] rounded-xl bg-[#161616] border border-[#2A2A2A] active:bg-[#252525] text-[#CCCCCC] hover:text-[#FF4444] hover:border-[#662222] transition-colors text-xs font-mono font-medium cursor-pointer touch-manipulation flex items-center justify-center gap-2 disabled:opacity-50 select-none"
+                className="flex-1 py-3 px-4 min-h-[48px] rounded-xl bg-[#161616] border border-[#2A2A2A] active:bg-[#252525] text-[#CCCCCC] hover:text-[#FF4444] hover:border-[#662222] transition-colors text-xs font-mono font-medium cursor-pointer touch-manipulation flex items-center justify-center gap-2 select-none"
               >
-                {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                <X size={14} />
                 <span>Decline</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleAccept}
-                onTouchEnd={handleAccept}
-                disabled={isProcessing}
-                className="flex-1 py-3 px-4 min-h-[48px] rounded-xl bg-white text-black font-semibold text-xs active:bg-[#CCCCCC] hover:bg-[#EAEAEA] transition-colors cursor-pointer font-mono touch-manipulation flex items-center justify-center gap-2 disabled:opacity-50 select-none"
+                className="flex-1 py-3 px-4 min-h-[48px] rounded-xl bg-white text-black font-semibold text-xs active:bg-[#CCCCCC] hover:bg-[#EAEAEA] transition-colors cursor-pointer font-mono touch-manipulation flex items-center justify-center gap-2 select-none"
               >
-                {isProcessing ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Check size={14} className="stroke-[3px]" />
-                )}
+                <Check size={14} className="stroke-[3px]" />
                 <span>Accept Task</span>
               </button>
             </div>
@@ -205,7 +247,10 @@ export function InboxTriageModal({ isOpen, onClose, defaultRole }: InboxTriageMo
               </button>
               <button
                 type="button"
-                onClick={() => seedMutation()}
+                onClick={() => {
+                  setDismissedIds([]);
+                  seedMutation();
+                }}
                 className="text-[10px] text-[#555555] hover:text-[#888888] underline cursor-pointer p-2 touch-manipulation"
               >
                 Reset demo messages
